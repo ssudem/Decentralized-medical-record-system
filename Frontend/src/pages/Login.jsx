@@ -11,7 +11,7 @@ import {
 } from '../utils/naclCrypto';
 
 export default function Login() {
-  const { login, connectWallet, walletAddress, setNaclPrivateKey } = useAuth();
+  const { login, connectWallet, walletAddress, setNaclPrivateKey, isSuperAdmin, isHospitalAdmin } = useAuth();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
@@ -81,22 +81,47 @@ export default function Login() {
           <p className="text-text-secondary text-sm mt-1">Sign in with your MetaMask wallet</p>
         </div>
 
-        {walletAddress && (
-          <div className="mb-6 p-3 rounded-xl bg-surface-light border border-border">
-            <p className="flex items-center gap-2 text-sm text-primary font-mono justify-center">
-              <Wallet className="w-4 h-4" /> {walletAddress}
-            </p>
+        {isSuperAdmin || isHospitalAdmin ? (
+          <div className="text-center space-y-4">
+            <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+              <p className="text-sm text-text-secondary">
+                Your connected wallet is recognized as an authorized 
+                <span className="font-semibold text-primary ml-1">
+                  {isSuperAdmin ? 'Super Admin' : 'Hospital Admin'}
+                </span>.
+              </p>
+              <p className="text-xs text-text-muted mt-2">
+                No need to sign in with an account. You can proceed directly to your admin panel.
+              </p>
+            </div>
+            
+            <Button 
+              onClick={() => navigate(isSuperAdmin ? '/admin' : '/hospital-admin')} 
+              className="w-full"
+            >
+              Go to {isSuperAdmin ? 'Admin Panel' : 'Hospital Panel'}
+            </Button>
           </div>
+        ) : (
+          <>
+            {walletAddress && (
+              <div className="mb-6 p-3 rounded-xl bg-surface-light border border-border">
+                <p className="flex items-center gap-2 text-sm text-primary font-mono justify-center">
+                  <Wallet className="w-4 h-4" /> {walletAddress}
+                </p>
+              </div>
+            )}
+
+            <Button onClick={handleLogin} loading={loading} className="w-full">
+              <Wallet className="w-4 h-4" /> Sign In with MetaMask
+            </Button>
+
+            <p className="text-center text-sm text-text-muted mt-6">
+              Don&apos;t have an account?{' '}
+              <Link to="/register" className="text-primary hover:text-primary-light transition-colors font-medium">Create one</Link>
+            </p>
+          </>
         )}
-
-        <Button onClick={handleLogin} loading={loading} className="w-full">
-          <Wallet className="w-4 h-4" /> Sign In with MetaMask
-        </Button>
-
-        <p className="text-center text-sm text-text-muted mt-6">
-          Don&apos;t have an account?{' '}
-          <Link to="/register" className="text-primary hover:text-primary-light transition-colors font-medium">Create one</Link>
-        </p>
       </Card>
     </div>
   );

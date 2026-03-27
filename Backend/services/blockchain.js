@@ -55,7 +55,7 @@ let contract;
  * process and is NEVER exposed through any API response or log statement.
  */
 function initBlockchain() {
-  provider = new ethers.JsonRpcProvider(process.env.GETBLOCK_RPC_URL);
+  provider = new ethers.JsonRpcProvider(process.env.BLOCKCHAIN_RPC_URL);
   serverWallet = new ethers.Wallet(process.env.SERVER_PRIVATE_KEY, provider);
   contract = new ethers.Contract(
     process.env.CONTRACT_ADDRESS,

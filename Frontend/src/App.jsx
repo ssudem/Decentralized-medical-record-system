@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { AlertTriangle } from 'lucide-react';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -18,12 +19,30 @@ import DiagnosticsDashboard from './pages/DiagnosticsDashboard';
 import UploadDiagnostics from './pages/UploadDiagnostics';
 
 function ProtectedRoute({ children, allowedRole }) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, walletAddress } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  
   if (allowedRole && user?.role !== allowedRole) {
     const home = user?.role === 'doctor' ? '/doctor' : user?.role === 'diagnostics' ? '/diagnostics' : '/patient';
     return <Navigate to={home} replace />;
   }
+
+  // Ensure active MetaMask wallet matches logged-in user account
+  if (user?.ethereumAddress && walletAddress && user.ethereumAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8 text-center animate-fade-in flex flex-col items-center justify-center min-h-[60vh]">
+        <AlertTriangle className="w-16 h-16 text-warning mb-4 opacity-80" />
+        <h1 className="text-3xl font-bold text-warning mb-2">Account Mismatch</h1>
+        <p className="text-text-secondary">
+          Your active MetaMask wallet (<span className="font-mono text-xs">{walletAddress || "None"}</span>) doesn't match your logged-in account (<span className="font-mono text-xs">{user.ethereumAddress}</span>).
+        </p>
+        <p className="text-text-secondary mt-2">
+          Please switch back to your registered wallet in MetaMask to view this page.
+        </p>
+      </div>
+    );
+  }
+
   return children;
 }
 

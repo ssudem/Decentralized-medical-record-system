@@ -52,7 +52,7 @@ A blockchain-powered, privacy-preserving medical records platform built on **Eth
 └─────────┼────────────────────┼────────────────────────────────────────┘
           │                    │
           ▼                    ▼
-┌──────────────────-┐   ┌──────────────────────────────────────────────────┐
+┌──────────────────-┐  ┌──────────────────────────────────────────────────┐
 │  Ethereum Sepolia │  │           BACKEND (Express.js + Node.js)         │
 │                   │  │                                                  │
 │  Smart Contract   │  │   routes/     services/       utils/             │

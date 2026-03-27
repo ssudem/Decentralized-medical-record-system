@@ -11,7 +11,7 @@ import { Card, Button, Input, Toast } from "../components/UI";
 import { UserCheck, Building2, Search, ShieldCheck, FlaskConical, Trash2, UserX } from "lucide-react";
 
 export default function HospitalPanel() {
-  const { walletAddress } = useAuth();
+  const { walletAddress, isHospitalAdmin } = useAuth();
   const [toast, setToast] = useState(null);
 
   // ── Authorize Doctor ──
@@ -139,6 +139,20 @@ export default function HospitalPanel() {
       setCheckLabLoading(false);
     }
   };
+  if (!isHospitalAdmin) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8 text-center animate-fade-in flex flex-col items-center justify-center min-h-[60vh]">
+        <Building2 className="w-16 h-16 text-danger mb-4 opacity-80" />
+        <h1 className="text-3xl font-bold text-danger mb-2">Access Denied</h1>
+        <p className="text-text-secondary">
+          The connected wallet (<span className="font-mono text-xs">{walletAddress || "None"}</span>) is not registered as a hospital.
+        </p>
+        <p className="text-text-secondary mt-2">
+          Please switch to an authorized hospital wallet in MetaMask to view this dashboard.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8 animate-fade-in">
