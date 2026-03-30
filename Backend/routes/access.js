@@ -1,22 +1,20 @@
 /**
  * ============================================================
  *  routes/access.js
- *  POST /api/access/grant   — Re-encrypt AES key for a doctor (NaCl)
- *  POST /api/access/revoke  — Remove doctor's key entry
+ *  POST /api/access/grant     — Store pre-encrypted AES key for a doctor
+ *  POST /api/access/store-key — Store pre-encrypted AES key (generic)
+ *  POST /api/access/revoke    — Remove doctor's key entry
  *  GET  /api/access/keys/:cid/:address — Fetch encrypted AES key
  * ============================================================
  *
- *  The client now decrypts the AES key locally (using session key
- *  or NaCl private key) and sends the plaintext AES key to the
- *  server, which re-encrypts it with the doctor's NaCl public key.
+ *  The client encrypts the AES key locally using NaCl box with the
+ *  sender's actual private key, then sends the encrypted key to the
+ *  server for storage. The sender_address stored is the sender's
+ *  real NaCl public key (not an ephemeral/server-generated one).
  */
 
 const express = require("express");
 const router = express.Router();
-const nacl = require("tweetnacl");
-const naclUtil = require("tweetnacl-util");
-
-const { encryptAESKeyWithNaCl } = require("../utils/crypto");
 
 const {
   storeEncryptedKey,
@@ -27,24 +25,26 @@ const {
 const { checkPermission } = require("../services/blockchain");
 
 // ─────────────────────────────────────────────
-//  POST /api/access/grant — Re-encrypt AES key for Doctor
+//  POST /api/access/grant — Store pre-encrypted AES key for Doctor
 // ─────────────────────────────────────────────
 
 /**
- * @caller  PATIENT
+ * @caller  PATIENT (frontend)
  *
- * The patient decrypts the AES key client-side (via session key or NaCl key)
- * and sends the plaintext AES key along with the doctor's NaCl public key.
- * The server encrypts the AES key for the doctor using nacl.box.
+ * The patient decrypts the AES key client-side, then re-encrypts it
+ * for the doctor using nacl.box with the patient's own NaCl private key.
+ * The server receives the pre-encrypted key and stores it directly.
+ * sender_address = patient's actual NaCl public key.
  *
  * Request body:
  * {
- *   "cid":                "Qm...",
- *   "patientAddress":     "0x...",
- *   "doctorAddress":      "0x...",
- *   "decryptedAESKey":    "base64...",      ← plaintext AES key (sent over HTTPS)
- *   "doctorNaClPublicKey": "base64...",     ← doctor's NaCl public key
- *   "operation":          "diabetes_check"
+ *   "cid":                  "Qm...",
+ *   "patientAddress":       "0x...",
+ *   "doctorAddress":        "0x...",
+ *   "encryptedAESKey":      "base64...",   ← NaCl-encrypted AES key (encrypted on frontend)
+ *   "nonce":                "base64...",   ← NaCl nonce
+ *   "senderNaClPublicKey":  "base64...",   ← patient's actual NaCl public key
+ *   "operation":            "diabetes_check"
  * }
  */
 router.post("/grant", async (req, res) => {
@@ -52,16 +52,17 @@ router.post("/grant", async (req, res) => {
     cid,
     patientAddress,
     doctorAddress,
-    decryptedAESKey,
-    doctorNaClPublicKey,
+    encryptedAESKey,
+    nonce,
+    senderNaClPublicKey,
     operation,
   } = req.body;
 
   try {
     // ── Validation ──
-    if (!cid || !patientAddress || !doctorAddress || !decryptedAESKey || !doctorNaClPublicKey || !operation) {
+    if (!cid || !patientAddress || !doctorAddress || !encryptedAESKey || !nonce || !senderNaClPublicKey || !operation) {
       return res.status(400).json({
-        error: "Missing required fields: cid, patientAddress, doctorAddress, decryptedAESKey, doctorNaClPublicKey, operation",
+        error: "Missing required fields: cid, patientAddress, doctorAddress, encryptedAESKey, nonce, senderNaClPublicKey, operation",
       });
     }
 
@@ -73,37 +74,65 @@ router.post("/grant", async (req, res) => {
       });
     }
 
-    // ── 2. NaCl-encrypt AES key for doctor ──
-    const aesKeyBuffer = Buffer.from(decryptedAESKey, "base64");
-    const doctorPubKeyBytes = naclUtil.decodeBase64(doctorNaClPublicKey);
-
-    // Use an ephemeral NaCl keypair for each grant operation
-    const ephemeralKeyPair = nacl.box.keyPair();
-
-    const { encryptedKey, nonce } = encryptAESKeyWithNaCl(
-      aesKeyBuffer,
-      doctorPubKeyBytes,
-      ephemeralKeyPair.secretKey
-    );
-
-    // ── 3. Store in DB (with sender = ephemeral public key) ──
+    // ── 2. Store pre-encrypted key (sender = patient's actual NaCl pubkey) ──
     await storeEncryptedKey(
       cid,
       doctorAddress,
-      encryptedKey,
+      encryptedAESKey,
       nonce,
-      naclUtil.encodeBase64(ephemeralKeyPair.publicKey)
+      senderNaClPublicKey
     );
 
-    console.log(`[Access] Granted key for CID ${cid} to doctor ${doctorAddress}`);
+    console.log(`[Access] Granted key for CID ${cid} to doctor ${doctorAddress} (sender: patient ${patientAddress})`);
 
     res.json({
       success: true,
-      message: `AES key encrypted and stored for doctor ${doctorAddress}`,
+      message: `AES key stored for doctor ${doctorAddress}`,
     });
   } catch (error) {
     console.error("[Access] Grant error (details hidden for security)");
     res.status(500).json({ error: "Internal server error during access grant." });
+  }
+});
+
+// ─────────────────────────────────────────────
+//  POST /api/access/store-key — Store pre-encrypted AES key (generic)
+// ─────────────────────────────────────────────
+
+/**
+ * @caller  DOCTOR (after record creation) or LAB (after diagnostics upload)
+ *
+ * After the server creates/encrypts a record and returns the AES key,
+ * the frontend encrypts the AES key for the patient using the caller's
+ * NaCl private key, then sends the pre-encrypted key here for storage.
+ *
+ * Request body:
+ * {
+ *   "cid":                  "Qm...",
+ *   "userAddress":          "0x...",       ← who the key is encrypted FOR
+ *   "encryptedAESKey":      "base64...",   ← NaCl-encrypted AES key
+ *   "nonce":                "base64...",   ← NaCl nonce
+ *   "senderNaClPublicKey":  "base64..."    ← sender's actual NaCl public key
+ * }
+ */
+router.post("/store-key", async (req, res) => {
+  const { cid, userAddress, encryptedAESKey, nonce, senderNaClPublicKey } = req.body;
+
+  try {
+    if (!cid || !userAddress || !encryptedAESKey || !nonce || !senderNaClPublicKey) {
+      return res.status(400).json({
+        error: "Missing required fields: cid, userAddress, encryptedAESKey, nonce, senderNaClPublicKey",
+      });
+    }
+
+    await storeEncryptedKey(cid, userAddress, encryptedAESKey, nonce, senderNaClPublicKey);
+
+    console.log(`[Access] Stored pre-encrypted key for CID ${cid} → user ${userAddress}`);
+
+    res.json({ success: true, message: `Encrypted AES key stored for ${userAddress}` });
+  } catch (error) {
+    console.error("[Access] store-key error:", error.message);
+    res.status(500).json({ error: "Internal server error while storing encrypted key." });
   }
 });
 

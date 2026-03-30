@@ -106,19 +106,26 @@ export function Input({
 export function Toast({ message, type = "success", onClose }) {
   if (!message) return null;
   const colors = {
-    success: "bg-success/10 border-success/30 text-success",
-    error: "bg-danger/10 border-danger/30 text-danger",
-    info: "bg-accent/10 border-accent/30 text-accent",
+    success: "bg-surface-card border-success/40 text-success",
+    error: "bg-surface-card border-danger/40 text-danger",
+    info: "bg-surface-card border-accent/40 text-accent",
+  };
+
+  const icons = {
+    success: "✓",
+    error: "✕",
+    info: "ℹ",
   };
 
   const toastContent = (
     <div
-      className={`fixed top-18 left-2/3 -translate-x-1/2 z-9999 w-auto px-6 py-3 rounded-xl border text-sm font-medium shadow-xl backdrop-blur-md animate-slide-down ${colors[type]}`}
+      className={`fixed top-20 left-1/2 -translate-x-1/2 z-9999 w-auto max-w-md px-5 py-3 rounded-xl border-2 text-sm font-medium shadow-2xl backdrop-blur-xl animate-slide-down flex items-center gap-3 ${colors[type]}`}
     >
-      {message}
+      <span className="text-base font-bold shrink-0">{icons[type]}</span>
+      <span className="flex-1">{message}</span>
       <button
         onClick={onClose}
-        className="ml-3 opacity-60 hover:opacity-100 cursor-pointer"
+        className="ml-2 opacity-60 hover:opacity-100 cursor-pointer text-text-secondary hover:text-text-primary transition-opacity shrink-0"
       >
         ×
       </button>

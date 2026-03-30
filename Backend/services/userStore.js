@@ -138,17 +138,6 @@ async function getUserByEthereumAddress(ethereumAddress) {
   return rows.length > 0 ? rows[0] : null;
 }
 
-/**
- * Get a user's NaCl public key by Ethereum address.
- */
-async function getNaClPublicKey(ethereumAddress) {
-  const p = getPool();
-  const [rows] = await p.execute(
-    `SELECT nacl_public_key FROM users WHERE LOWER(ethereum_address) = LOWER(?)`,
-    [ethereumAddress]
-  );
-  return rows.length > 0 ? rows[0].nacl_public_key : null;
-}
 
 /**
  * Update the nonce for a given Ethereum address (used after successful auth).
@@ -185,7 +174,6 @@ module.exports = {
   getUserByEthereumAddressFull,
   getUserById,
   getUserByEthereumAddress,
-  getNaClPublicKey,
   updateNonce,
   setPendingNonce,
   getPendingNonce,

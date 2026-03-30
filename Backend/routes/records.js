@@ -5,22 +5,20 @@
  *  POST /api/records/view  — Return encrypted records for client-side decryption
  * ============================================================
  *
- *  Key change: Decryption now happens CLIENT-SIDE.
- *  The server returns encrypted data + encrypted AES keys, and the
- *  client decrypts using their NaCl private key.
+ *  Key change: The server returns the AES key in the creation response.
+ *  The CALLER (doctor frontend) encrypts the AES key for the patient
+ *  using the doctor’s actual NaCl private key, then stores it via
+ *  POST /api/access/store-key. This ensures sender_address in the DB
+ *  is the doctor’s real NaCl public key.
  */
 
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const nacl = require("tweetnacl");
-const naclUtil = require("tweetnacl-util");
-
 const {
   generateAESKey,
   encryptRecord,
   encryptBuffer,
-  encryptAESKeyWithNaCl,
 } = require("../utils/crypto");
 
 // Multer config — optional PDF, stored in memory (max 20 MB)
@@ -37,35 +35,9 @@ const upload = multer({
 });
 
 const { uploadToIPFS, fetchFromIPFS, fetchMetadataFromIPFS } = require("../services/ipfsService");
-const {
-  storeEncryptedKey,
-  getEncryptedKey,
-} = require("../services/keyStore");
+const { getEncryptedKey } = require("../services/keyStore");
 const { uploadRecordOnChain, getPatientRecordCIDs, checkPermission } = require("../services/blockchain");
 const { isRecordRelevant, OPERATION_TAG_MAP } = require("../config/operationTags");
-const { getNaClPublicKey } = require("../services/userStore");
-
-// Server-side NaCl keypair used for encrypting AES keys for users.
-// The public key is stored alongside the encrypted key so users can decrypt.
-// Generated once per server lifetime (or could be loaded from env).
-let serverNaClKeyPair = null;
-
-function getServerNaClKeyPair() {
-  if (!serverNaClKeyPair) {
-    // In production, persist this keypair or derive it from a seed.
-    // For now, generate per-server-lifetime.
-    if (process.env.SERVER_NACL_PRIVATE_KEY) {
-      const secretKey = naclUtil.decodeBase64(process.env.SERVER_NACL_PRIVATE_KEY);
-      serverNaClKeyPair = nacl.box.keyPair.fromSecretKey(secretKey);
-    } else {
-      serverNaClKeyPair = nacl.box.keyPair();
-      console.log(`[Records] ⚠️  Generated ephemeral server NaCl keypair.`);
-      console.log(`[Records]    Set SERVER_NACL_PRIVATE_KEY=${naclUtil.encodeBase64(serverNaClKeyPair.secretKey)} in .env for persistence.`);
-    }
-    console.log(`[Records] Server NaCl public key: ${naclUtil.encodeBase64(serverNaClKeyPair.publicKey)}`);
-  }
-  return serverNaClKeyPair;
-}
 
 // ─────────────────────────────────────────────
 //  POST /api/records — Create & Encrypt Record
@@ -146,27 +118,18 @@ router.post("/", upload.single("pdfFile"), async (req, res) => {
     const cid = await uploadToIPFS(metadata, encryptedPayload);
     console.log(`[Records] Uploaded to IPFS: ${cid}`);
 
-    // ── 5. NaCl-encrypt AES key for patient ──
-    const serverKP = getServerNaClKeyPair();
-    const patientPubKeyBytes = naclUtil.decodeBase64(patientNaClPublicKey);
+    // ── 5. Return AES key for client-side NaCl encryption ──
+    // The doctor frontend will encrypt this for the patient and store
+    // via POST /api/access/store-key with the doctor’s actual NaCl pubkey.
+    const aesKeyBase64 = aesKey.toString("base64");
 
-    const { encryptedKey, nonce } = encryptAESKeyWithNaCl(
-      aesKey, patientPubKeyBytes, serverKP.secretKey
-    );
+    console.log(`[Records] Record created, CID: ${cid}. AES key returned to doctor for NaCl wrapping.`);
 
-    await storeEncryptedKey(
-      cid,
-      patientAddress,
-      encryptedKey,
-      nonce,
-      naclUtil.encodeBase64(serverKP.publicKey) // sender = server public key
-    );
-    console.log(`[Records] AES key stored for patient: ${patientAddress}`);
-
-    // ── 7. Response ──
+    // ── 6. Response ──
     res.status(201).json({
       success: true,
       cid,
+      aesKeyBase64,   // Doctor frontend encrypts this for the patient
       txHash: "pending_metamask",
       message: "Record encrypted, uploaded to IPFS, ready for blockchain registration",
     });
@@ -293,15 +256,11 @@ router.post("/view", async (req, res) => {
       .filter(r => r.status === "fulfilled" && r.value !== null)
       .map(r => r.value);
 
-    // Also provide the server's NaCl public key so clients can identify it
-    const serverKP = getServerNaClKeyPair();
-
     res.json({
       totalRecords: allRecords.length,
       filteredCount: relevantRecords.length,
       returnedCount: records.length,
       operation,
-      serverNaClPublicKey: naclUtil.encodeBase64(serverKP.publicKey),
       records,
     });
   } catch (error) {

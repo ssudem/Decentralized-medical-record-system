@@ -8,7 +8,10 @@ import { ShieldPlus, ShieldOff, RefreshCw, Inbox, CheckCircle, XCircle, ChevronR
 import OPERATIONS from '../constants/operations';
 import {
   decryptAESKeyWithNaCl,
+  encryptAESKeyWithNaCl,
 } from '../utils/naclCrypto';
+import nacl from 'tweetnacl';
+import naclUtil from 'tweetnacl-util';
 
 export default function PatientDashboard() {
   const { user, walletAddress, naclPrivateKey } = useAuth();
@@ -92,15 +95,26 @@ export default function PatientDashboard() {
             continue;
           }
 
-          // Convert to base64 for transport
-          const aesKeyBase64 = btoa(String.fromCharCode(...aesKeyBytes));
+          // Re-encrypt the AES key for the doctor using patient's NaCl private key
+          const { encryptedKey, nonce: encNonce } = encryptAESKeyWithNaCl(
+            aesKeyBytes,
+            doctorNaClPubKey,
+            naclPrivateKey
+          );
+
+          // Derive patient's NaCl public key from private key
+          const patientSecKey = naclUtil.decodeBase64(naclPrivateKey);
+          const patientPubKey = naclUtil.encodeBase64(
+            nacl.box.keyPair.fromSecretKey(patientSecKey).publicKey
+          );
 
           await API.post('/access/grant', {
             cid: rec.cid,
             patientAddress: walletAddress,
             doctorAddress: request.doctor_address,
-            decryptedAESKey: aesKeyBase64,
-            doctorNaClPublicKey: doctorNaClPubKey,
+            encryptedAESKey: encryptedKey,
+            nonce: encNonce,
+            senderNaClPublicKey: patientPubKey,
             operation: request.operation,
           });
           keysGranted++;

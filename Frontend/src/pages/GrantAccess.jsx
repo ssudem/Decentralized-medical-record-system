@@ -8,7 +8,9 @@ import { Shield, ArrowLeft, Clock, Search, UserCheck } from 'lucide-react';
 import OPERATIONS from '../constants/operations';
 import {
   decryptAESKeyWithNaCl,
+  encryptAESKeyWithNaCl,
 } from '../utils/naclCrypto';
+import nacl from 'tweetnacl';
 import naclUtil from 'tweetnacl-util';
 
 export default function GrantAccess() {
@@ -105,16 +107,27 @@ export default function GrantAccess() {
           continue;
         }
 
-        // Send decrypted AES key to backend for re-encryption
-        // Converting Uint8Array to base64 for safe transport
-        const aesKeyBase64 = btoa(String.fromCharCode(...aesKeyBytes));
+        // Re-encrypt the AES key for the doctor using patient's NaCl private key
+        const { encryptedKey, nonce: encNonce } = encryptAESKeyWithNaCl(
+          aesKeyBytes,
+          doctorNaClPubKey,
+          naclPrivateKey
+        );
 
+        // Derive patient's NaCl public key from private key
+        const patientSecKey = naclUtil.decodeBase64(naclPrivateKey);
+        const patientPubKey = naclUtil.encodeBase64(
+          nacl.box.keyPair.fromSecretKey(patientSecKey).publicKey
+        );
+
+        // Send pre-encrypted key to backend (no plaintext AES key ever sent)
         await API.post('/access/grant', {
           cid,
           patientAddress: walletAddress,
           doctorAddress,
-          decryptedAESKey: aesKeyBase64,
-          doctorNaClPublicKey: doctorNaClPubKey,
+          encryptedAESKey: encryptedKey,
+          nonce: encNonce,
+          senderNaClPublicKey: patientPubKey,
           operation,
         });
       }

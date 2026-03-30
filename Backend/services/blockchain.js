@@ -107,21 +107,6 @@ async function checkPermission(patientAddress, doctorAddress, operation) {
   return await c.checkPermission(patientAddress, doctorAddress, operation);
 }
 
-/**
- * Get the expiry timestamp for a specific permission.
- * @caller  BACKEND — utility function; can be called to display remaining
- *          access time in a UI or for admin dashboards.
- *
- * @param {string} patientAddress
- * @param {string} doctorAddress
- * @param {string} operation
- * @returns {Promise<bigint>} Unix timestamp (0 = never granted or revoked)
- */
-async function getAccessExpiry(patientAddress, doctorAddress, operation) {
-  const c = getContract();
-  return await c.getAccessExpiry(patientAddress, doctorAddress, operation);
-}
-
 // ─────────────────────────────────────────────
 //  Record Operations
 // ─────────────────────────────────────────────
@@ -369,7 +354,6 @@ module.exports = {
   getContract,
   getProvider,
   checkPermission,
-  getAccessExpiry,
   getPatientRecordCIDs,
   uploadRecordOnChain,
   addHospitalOnChain,

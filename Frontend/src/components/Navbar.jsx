@@ -1,4 +1,5 @@
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { Link, useNavigate } from "react-router-dom";
 import {
   LogOut,
@@ -8,6 +9,8 @@ import {
   X,
   Settings,
   Building2,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -21,6 +24,7 @@ export default function Navbar() {
     isSuperAdmin,
     isHospitalAdmin,
   } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -38,7 +42,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Brand */}
           <Link to="/" className="flex items-center gap-2 group">
-            <Shield className="w-7 h-7 text-primary group-hover:text-primary-light transition-colors" />
+            <img src="/CITKLogo.png" alt="CITK log" className="w-8 h-8" />
             <span className="text-xl font-bold bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
               MediRecord
             </span>
@@ -80,9 +84,7 @@ export default function Navbar() {
             {isAuthenticated && (
               <>
                 <span className="text-sm text-text-secondary">
-                  <span className="text-primary capitalize">
-                    {user?.role}
-                  </span>
+                  <span className="text-primary capitalize">{user?.role}</span>
                 </span>
                 <button
                   onClick={handleLogout}
@@ -92,19 +94,61 @@ export default function Navbar() {
                 </button>
               </>
             )}
+
+            {/* Theme Toggle */}
+            <button
+              id="theme-toggle"
+              onClick={toggleTheme}
+              className="p-2 rounded-lg bg-surface-light border border-border hover:border-primary/50 text-text-secondary hover:text-primary transition-all duration-200 cursor-pointer"
+              aria-label={
+                theme === "dark"
+                  ? "Switch to light mode"
+                  : "Switch to dark mode"
+              }
+              title={
+                theme === "dark"
+                  ? "Switch to light mode"
+                  : "Switch to dark mode"
+              }
+            >
+              {theme === "dark" ? (
+                <Sun className="w-4 h-4 theme-toggle-icon" />
+              ) : (
+                <Moon className="w-4 h-4 theme-toggle-icon" />
+              )}
+            </button>
           </div>
 
           {/* Mobile toggle */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden p-2 text-text-secondary"
-          >
-            {menuOpen ? (
-              <X className="w-5 h-5" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
-          </button>
+          <div className="flex md:hidden items-center gap-2">
+            {/* Theme Toggle (mobile) */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg bg-surface-light border border-border text-text-secondary hover:text-primary transition-colors cursor-pointer"
+              aria-label={
+                theme === "dark"
+                  ? "Switch to light mode"
+                  : "Switch to dark mode"
+              }
+            >
+              {theme === "dark" ? (
+                <Sun className="w-4 h-4 theme-toggle-icon" />
+              ) : (
+                <Moon className="w-4 h-4 theme-toggle-icon" />
+              )}
+            </button>
+
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-2 text-text-secondary"
+            >
+              {menuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 

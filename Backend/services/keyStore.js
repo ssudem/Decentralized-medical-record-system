@@ -137,33 +137,9 @@ async function removeKeysForUser(cid, userAddress) {
   );
 }
 
-/**
- * Remove ALL key entries for a user across all CIDs.
- */
-async function removeAllKeysForUser(userAddress) {
-  const p = getPool();
-  await p.execute(
-    `DELETE FROM encrypted_keys WHERE user_address = ?`,
-    [userAddress.toLowerCase()]
-  );
-}
-
-/**
- * Get all CIDs that a user has encrypted AES keys for.
- */
-async function getCIDsForUser(userAddress) {
-  const p = getPool();
-  const [rows] = await p.execute(
-    `SELECT cid FROM encrypted_keys WHERE user_address = ?`,
-    [userAddress.toLowerCase()]
-  );
-  return rows.map(r => r.cid);
-}
 
 module.exports = {
   storeEncryptedKey,
   getEncryptedKey,
   removeKeysForUser,
-  removeAllKeysForUser,
-  getCIDsForUser,
 };

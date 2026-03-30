@@ -1,13 +1,13 @@
-import { ethers } from 'ethers';
-import contractABI from '../contractABI.json';
+import { ethers } from "ethers";
+import contractABI from "../contractABI.json";
 
-const CONTRACT_ADDRESS = '0x9F00E189F0DA03CbECD0a16FC7748fB030521Cf9';
+const CONTRACT_ADDRESS = "0x68B52e168a307991abe5F743CC4F5A050C3AD6dA";
 
 /**
  * Get a BrowserProvider (MetaMask).
  */
 export function getProvider() {
-  if (!window.ethereum) throw new Error('MetaMask is not installed');
+  if (!window.ethereum) throw new Error("MetaMask is not installed");
   return new ethers.BrowserProvider(window.ethereum);
 }
 
@@ -41,9 +41,19 @@ export async function getWriteContract() {
  * Patient grants access to a doctor for a specific operation.
  * Prompts MetaMask to sign the tx.
  */
-export async function grantAccessOnChain(doctorAddress, operation, purpose, durationSeconds) {
+export async function grantAccessOnChain(
+  doctorAddress,
+  operation,
+  purpose,
+  durationSeconds,
+) {
   const contract = await getWriteContract();
-  const tx = await contract.grantAccess(doctorAddress, operation, purpose, durationSeconds);
+  const tx = await contract.grantAccess(
+    doctorAddress,
+    operation,
+    purpose,
+    durationSeconds,
+  );
   return tx.wait();
 }
 
@@ -63,22 +73,6 @@ export async function addRecordOnChain(patientAddress, cid) {
   const contract = await getWriteContract();
   const tx = await contract.uploadRecord(patientAddress, cid);
   return tx.wait();
-}
-
-/**
- * Patient reads their own records (view).
- */
-export async function getMyRecords() {
-  const contract = await getReadContract();
-  return contract.myRecords();
-}
-
-/**
- * Check if a doctor still has permission for a patient / operation.
- */
-export async function checkPermissionOnChain(patientAddress, doctorAddress, operation) {
-  const contract = await getReadContract();
-  return contract.checkPermission(patientAddress, doctorAddress, operation);
 }
 
 /**

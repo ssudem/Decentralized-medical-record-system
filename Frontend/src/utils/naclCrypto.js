@@ -279,4 +279,3 @@ function base64ToArray(base64) {
   return bytes;
 }
 
-export { SIGN_MESSAGE };

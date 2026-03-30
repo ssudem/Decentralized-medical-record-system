@@ -24,17 +24,17 @@ A blockchain-powered, privacy-preserving medical records platform built on **Eth
 
 ## ✨ Key Features
 
-| Feature | Description |
-|---------|-------------|
-| **Wallet-Based Auth** | Users authenticate via MetaMask wallet signatures (no passwords) |
-| **End-to-End Encryption** | Medical records are AES-256-GCM encrypted; keys are NaCl box-encrypted per user |
-| **IPFS Storage** | Encrypted records are stored on IPFS via Pinata — never on centralized servers |
-| **On-Chain Access Control** | Patients grant/revoke time-limited, purpose-specific access on the Ethereum blockchain |
-| **Role-Based Hierarchy** | SuperAdmin → Hospital → Doctor / Diagnostics Lab → Patient chain of trust |
-| **Client-Side Decryption** | Records are decrypted entirely in the browser — the server never sees plaintext |
+| Feature                       | Description                                                                                  |
+| ----------------------------- | -------------------------------------------------------------------------------------------- |
+| **Wallet-Based Auth**         | Users authenticate via MetaMask wallet signatures (no passwords)                             |
+| **End-to-End Encryption**     | Medical records are AES-256-GCM encrypted; keys are NaCl box-encrypted per user              |
+| **IPFS Storage**              | Encrypted records are stored on IPFS via Pinata — never on centralized servers               |
+| **On-Chain Access Control**   | Patients grant/revoke time-limited, purpose-specific access on the Ethereum blockchain       |
+| **Role-Based Hierarchy**      | SuperAdmin → Hospital → Doctor / Diagnostics Lab → Patient chain of trust                    |
+| **Client-Side Decryption**    | Records are decrypted entirely in the browser — the server never sees plaintext              |
 | **Operation-Based Filtering** | Doctors can only access records tagged for their specific operation (e.g., `diabetes_check`) |
-| **PDF Support** | Doctors and labs can upload encrypted PDF reports alongside structured JSON data |
-| **Diagnostics Labs** | Labs can upload lab reports that are encrypted for the patient automatically |
+| **PDF Support**               | Doctors and labs can upload encrypted PDF reports alongside structured JSON data             |
+| **Diagnostics Labs**          | Labs can upload lab reports that are encrypted for the patient automatically                 |
 
 ---
 
@@ -109,34 +109,37 @@ SuperAdmin (Contract Deployer / Regulatory Body)
 ## 🛠 Tech Stack
 
 ### Backend
-| Technology | Purpose |
-|-----------|---------|
-| **Node.js + Express** | REST API server |
-| **ethers.js v6** | Blockchain interaction (Ethereum Sepolia) |
-| **TweetNaCl** | NaCl asymmetric encryption (key wrapping) |
-| **mysql2** | Database client (TiDB Cloud / MySQL) |
-| **Multer** | PDF file upload handling |
-| **JWT (jsonwebtoken)** | Session tokens |
-| **Axios + FormData** | Pinata IPFS uploads |
+
+| Technology             | Purpose                                   |
+| ---------------------- | ----------------------------------------- |
+| **Node.js + Express**  | REST API server                           |
+| **ethers.js v6**       | Blockchain interaction (Ethereum Sepolia) |
+| **TweetNaCl**          | NaCl asymmetric encryption (key wrapping) |
+| **mysql2**             | Database client (TiDB Cloud / MySQL)      |
+| **Multer**             | PDF file upload handling                  |
+| **JWT (jsonwebtoken)** | Session tokens                            |
+| **Axios + FormData**   | Pinata IPFS uploads                       |
 
 ### Frontend
-| Technology | Purpose |
-|-----------|---------|
-| **React 19 + Vite 8** | UI framework and build tool |
-| **Tailwind CSS v4** | Styling and design system |
-| **ethers.js v6** | MetaMask wallet integration |
-| **TweetNaCl** | Client-side AES key decryption |
-| **React Router v7** | Page routing and navigation |
-| **Lucide React** | Icon library |
-| **Axios** | HTTP client for backend API |
+
+| Technology            | Purpose                        |
+| --------------------- | ------------------------------ |
+| **React 19 + Vite 8** | UI framework and build tool    |
+| **Tailwind CSS v4**   | Styling and design system      |
+| **ethers.js v6**      | MetaMask wallet integration    |
+| **TweetNaCl**         | Client-side AES key decryption |
+| **React Router v7**   | Page routing and navigation    |
+| **Lucide React**      | Icon library                   |
+| **Axios**             | HTTP client for backend API    |
 
 ### Blockchain & Storage
-| Technology | Purpose |
-|-----------|---------|
-| **Solidity 0.8.19** | Smart contract (access control, record registry) |
-| **Ethereum Sepolia** | Testnet for deployment |
-| **Pinata / IPFS** | Decentralized encrypted record storage |
-| **TiDB Cloud** | Serverless MySQL for key storage and user data |
+
+| Technology           | Purpose                                          |
+| -------------------- | ------------------------------------------------ |
+| **Solidity 0.8.19**  | Smart contract (access control, record registry) |
+| **Ethereum Sepolia** | Testnet for deployment                           |
+| **Pinata / IPFS**    | Decentralized encrypted record storage           |
+| **TiDB Cloud**       | Serverless MySQL for key storage and user data   |
 
 ---
 
@@ -223,20 +226,20 @@ MediRecord/
 
 ### Key Functions
 
-| Function | Caller | Description |
-|----------|--------|-------------|
-| `registerHospital(address)` | SuperAdmin | Register a trusted hospital |
-| `removeHospital(address)` | SuperAdmin | Remove a hospital (cascading) |
-| `authorizeDoctor(address)` | Hospital | Authorize a doctor under this hospital |
-| `unauthorizeDoctor(address)` | Hospital | Revoke a doctor's authorization |
-| `authorizeDiagnosticsLab(address)` | Hospital | Authorize a diagnostics lab |
-| `unauthorizeDiagnosticsLab(address)` | Hospital | Revoke a lab's authorization |
-| `uploadRecord(patient, CID)` | Doctor | Link an IPFS CID to a patient |
-| `uploadRecordLab(patient, CID)` | Lab | Link a lab report CID to a patient |
-| `grantAccess(doctor, op, purpose, duration)` | Patient | Grant time-limited access |
-| `revokeAccess(doctor, op)` | Patient | Revoke access |
-| `checkPermission(patient, doctor, op)` | Anyone | Verify active permission |
-| `getPatientRecords(patient)` | SuperAdmin/Patient | Get all record CIDs |
+| Function                                     | Caller             | Description                            |
+| -------------------------------------------- | ------------------ | -------------------------------------- |
+| `registerHospital(address)`                  | SuperAdmin         | Register a trusted hospital            |
+| `removeHospital(address)`                    | SuperAdmin         | Remove a hospital (cascading)          |
+| `authorizeDoctor(address)`                   | Hospital           | Authorize a doctor under this hospital |
+| `unauthorizeDoctor(address)`                 | Hospital           | Revoke a doctor's authorization        |
+| `authorizeDiagnosticsLab(address)`           | Hospital           | Authorize a diagnostics lab            |
+| `unauthorizeDiagnosticsLab(address)`         | Hospital           | Revoke a lab's authorization           |
+| `uploadRecord(patient, CID)`                 | Doctor             | Link an IPFS CID to a patient          |
+| `uploadRecordLab(patient, CID)`              | Lab                | Link a lab report CID to a patient     |
+| `grantAccess(doctor, op, purpose, duration)` | Patient            | Grant time-limited access              |
+| `revokeAccess(doctor, op)`                   | Patient            | Revoke access                          |
+| `checkPermission(patient, doctor, op)`       | Anyone             | Verify active permission               |
+| `getPatientRecords(patient)`                 | SuperAdmin/Patient | Get all record CIDs                    |
 
 ---
 
@@ -246,11 +249,11 @@ MediRecord/
 
 ```
 1.  Doctor creates a medical record (JSON + optional PDF)
-2.  Backend generates a random AES-256-GCM key + IV
-3.  Record is encrypted with the AES key
-4.  AES key is NaCl box-encrypted for the patient's public key
-5.  Encrypted record → uploaded to IPFS (Pinata)
-6.  Encrypted AES key + nonce → stored in MySQL
+2.  Backend generates a random AES-256-GCM key + IV and encrypts the record
+3.  Encrypted record → uploaded to IPFS (Pinata)
+4.  Backend returns the raw AES key to the Doctor's frontend
+5.  Doctor's frontend NaCl box-encrypts the AES key for the Patient's public key
+6.  Encrypted AES key + nonce → sent to backend and stored in MySQL
 7.  IPFS CID → registered on-chain via smart contract
 ```
 
@@ -268,21 +271,21 @@ MediRecord/
 ### Key Sharing (Access Grant)
 
 ```
-1.  Patient approves a doctor's request
-2.  Patient's browser decrypts their own AES key (NaCl private key)
-3.  Patient's browser sends the raw AES key to the backend
-4.  Backend re-encrypts the AES key for the doctor's NaCl public key
-5.  Re-encrypted key is stored in MySQL for the doctor
+1.  Patient approves a doctor's access request
+2.  Patient's browser fetches their NaCl-encrypted AES key from the backend
+3.  Patient's browser decrypts the AES key using their own NaCl private key locally
+4.  Patient's browser re-encrypts the AES key for the doctor's NaCl public key
+5.  Patient's browser sends the newly encrypted AES key to the backend for storage
 6.  On-chain permission is granted (time-limited, operation-specific)
 ```
 
 ### Cryptographic Primitives
 
-| Primitive | Usage |
-|-----------|-------|
-| **AES-256-GCM** | Record and PDF encryption (symmetric) |
-| **NaCl box (x25519-xsalsa20-poly1305)** | AES key wrapping per user (asymmetric) |
-| **ECDSA (secp256k1)** | Ethereum wallet signatures for authentication |
+| Primitive                               | Usage                                         |
+| --------------------------------------- | --------------------------------------------- |
+| **AES-256-GCM**                         | Record and PDF encryption (symmetric)         |
+| **NaCl box (x25519-xsalsa20-poly1305)** | AES key wrapping per user (asymmetric)        |
+| **ECDSA (secp256k1)**                   | Ethereum wallet signatures for authentication |
 
 ---
 
@@ -291,112 +294,121 @@ MediRecord/
 The system uses **MySQL (TiDB Cloud)** for off-chain state that cannot be stored on the blockchain for cost/privacy reasons.
 
 ### `users`
+
 Stores user accounts with their NaCl keypair (private key encrypted with a user-derived password).
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | INT (PK) | Auto-increment ID |
-| `email` | VARCHAR(255) | User email (unique) |
-| `password_hash` | VARCHAR(255) | Bcrypt password hash |
-| `role` | VARCHAR(20) | `patient`, `doctor`, or `diagnostics` |
-| `nacl_public_key` | TEXT | NaCl public key (Base64) |
-| `encrypted_nacl_private_key` | TEXT | AES-encrypted NaCl private key |
-| `ethereum_address` | VARCHAR(42) | Linked MetaMask wallet address |
+| Column                       | Type         | Description                                           |
+| ---------------------------- | ------------ | ----------------------------------------------------- |
+| `id`                         | INT (PK)     | Auto-increment ID                                     |
+| `email`                      | VARCHAR(255) | User email (unique)                                   |
+| `password_hash`              | VARCHAR(255) | Bcrypt password hash                                  |
+| `role`                       | VARCHAR(20)  | `patient`, `doctor`, or `diagnostics`                 |
+| `nacl_public_key`            | TEXT         | NaCl public key (Base64)                              |
+| `encrypted_nacl_private_key` | TEXT         | AES-encrypted NaCl private key (via wallet signature) |
+| `ethereum_address`           | VARCHAR(42)  | Linked MetaMask wallet address                        |
 
 ### `encrypted_keys`
+
 Stores NaCl-encrypted AES keys per user per record (CID).
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `cid` | VARCHAR(255) | IPFS Content ID |
-| `user_address` | VARCHAR(255) | Ethereum address of the key holder |
-| `encrypted_aes_key` | TEXT | NaCl-encrypted AES key (Base64) |
-| `nonce` | VARCHAR(64) | NaCl nonce (Base64) |
-| `sender_address` | VARCHAR(255) | NaCl public key of the encrypting party |
+| Column              | Type         | Description                             |
+| ------------------- | ------------ | --------------------------------------- |
+| `cid`               | VARCHAR(255) | IPFS Content ID                         |
+| `user_address`      | VARCHAR(255) | Ethereum address of the key holder      |
+| `encrypted_aes_key` | TEXT         | NaCl-encrypted AES key (Base64)         |
+| `nonce`             | VARCHAR(64)  | NaCl nonce (Base64)                     |
+| `sender_address`    | VARCHAR(255) | NaCl public key of the encrypting party |
 
 ### `access_requests`
+
 Tracks doctor → patient access request workflow.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `patient_address` | VARCHAR(255) | Patient's Ethereum address |
-| `doctor_address` | VARCHAR(255) | Doctor's Ethereum address |
-| `operation` | VARCHAR(100) | Requested operation type |
-| `purpose` | VARCHAR(255) | Free-text purpose description |
-| `status` | ENUM | `pending`, `approved`, or `rejected` |
+| Column            | Type         | Description                          |
+| ----------------- | ------------ | ------------------------------------ |
+| `patient_address` | VARCHAR(255) | Patient's Ethereum address           |
+| `doctor_address`  | VARCHAR(255) | Doctor's Ethereum address            |
+| `operation`       | VARCHAR(100) | Requested operation type             |
+| `purpose`         | VARCHAR(255) | Free-text purpose description        |
+| `status`          | ENUM         | `pending`, `approved`, or `rejected` |
 
 ---
 
 ## 🌐 API Reference
 
 ### Authentication (`/api/auth`)
-| Method | Endpoint | Caller | Description |
-|--------|----------|--------|-------------|
-| POST | `/register` | Anyone | Register with wallet + NaCl keypair |
-| POST | `/login` | Anyone | Wallet-signature-based login (returns JWT) |
-| GET | `/me` | Authenticated | Get current user profile |
-| GET | `/public-key/:address` | Authenticated | Get user's NaCl public key |
+
+| Method | Endpoint               | Caller        | Description                                |
+| ------ | ---------------------- | ------------- | ------------------------------------------ |
+| POST   | `/register`            | Anyone        | Register with wallet + NaCl keypair        |
+| POST   | `/login`               | Anyone        | Wallet-signature-based login (returns JWT) |
+| GET    | `/me`                  | Authenticated | Get current user profile                   |
+| GET    | `/public-key/:address` | Authenticated | Get user's NaCl public key                 |
 
 ### Records (`/api/records`)
-| Method | Endpoint | Caller | Description |
-|--------|----------|--------|-------------|
-| POST | `/` | Doctor | Create & encrypt a medical record |
-| POST | `/view` | Patient/Doctor | Fetch encrypted records for client-side decryption |
+
+| Method | Endpoint | Caller         | Description                                        |
+| ------ | -------- | -------------- | -------------------------------------------------- |
+| POST   | `/`      | Doctor         | Create & encrypt a medical record                  |
+| POST   | `/view`  | Patient/Doctor | Fetch encrypted records for client-side decryption |
 
 ### Access Control (`/api/access`)
-| Method | Endpoint | Caller | Description |
-|--------|----------|--------|-------------|
-| POST | `/grant` | Patient | Re-encrypt AES key for a doctor |
-| POST | `/revoke` | Patient | Remove a doctor's key entry |
-| GET | `/keys/:cid/:address` | Any | Retrieve encrypted AES key |
+
+| Method | Endpoint              | Caller  | Description                     |
+| ------ | --------------------- | ------- | ------------------------------- |
+| POST   | `/grant`              | Patient | Re-encrypt AES key for a doctor |
+| POST   | `/revoke`             | Patient | Remove a doctor's key entry     |
+| GET    | `/keys/:cid/:address` | Any     | Retrieve encrypted AES key      |
 
 ### Hospitals (`/api/hospitals`)
-| Method | Endpoint | Caller | Description |
-|--------|----------|--------|-------------|
-| POST | `/add` | SuperAdmin | Register a hospital on-chain |
-| POST | `/remove` | SuperAdmin | Remove a hospital on-chain |
-| POST | `/authorize-doctor` | Hospital | Authorize a doctor |
-| POST | `/unauthorize-doctor` | Hospital | Revoke a doctor |
-| POST | `/authorize-diagnostics` | Hospital | Authorize a diagnostics lab |
-| POST | `/unauthorize-diagnostics` | Hospital | Revoke a diagnostics lab |
-| GET | `/:address/status` | Anyone | Check hospital registration status |
-| GET | `/doctor/:address` | Anyone | Check doctor's linked hospital |
-| GET | `/diagnostics-lab/:address` | Anyone | Check lab's linked hospital |
+
+| Method | Endpoint                    | Caller     | Description                        |
+| ------ | --------------------------- | ---------- | ---------------------------------- |
+| POST   | `/add`                      | SuperAdmin | Register a hospital on-chain       |
+| POST   | `/remove`                   | SuperAdmin | Remove a hospital on-chain         |
+| POST   | `/authorize-doctor`         | Hospital   | Authorize a doctor                 |
+| POST   | `/unauthorize-doctor`       | Hospital   | Revoke a doctor                    |
+| POST   | `/authorize-diagnostics`    | Hospital   | Authorize a diagnostics lab        |
+| POST   | `/unauthorize-diagnostics`  | Hospital   | Revoke a diagnostics lab           |
+| GET    | `/:address/status`          | Anyone     | Check hospital registration status |
+| GET    | `/doctor/:address`          | Anyone     | Check doctor's linked hospital     |
+| GET    | `/diagnostics-lab/:address` | Anyone     | Check lab's linked hospital        |
 
 ### Requests (`/api/requests`)
-| Method | Endpoint | Caller | Description |
-|--------|----------|--------|-------------|
-| POST | `/` | Doctor | Create an access request |
-| GET | `/patient/:address` | Patient | Get pending requests |
-| GET | `/doctor/:address` | Doctor | Get sent requests |
-| PUT | `/:id/status` | Patient | Approve or reject a request |
+
+| Method | Endpoint            | Caller  | Description                 |
+| ------ | ------------------- | ------- | --------------------------- |
+| POST   | `/`                 | Doctor  | Create an access request    |
+| GET    | `/patient/:address` | Patient | Get pending requests        |
+| GET    | `/doctor/:address`  | Doctor  | Get sent requests           |
+| PUT    | `/:id/status`       | Patient | Approve or reject a request |
 
 ### Diagnostics (`/api/diagnostics`)
-| Method | Endpoint | Caller | Description |
-|--------|----------|--------|-------------|
-| POST | `/upload` | Lab | Upload encrypted diagnostics report |
+
+| Method | Endpoint  | Caller | Description                         |
+| ------ | --------- | ------ | ----------------------------------- |
+| POST   | `/upload` | Lab    | Upload encrypted diagnostics report |
 
 ---
 
 ## 🖥 Frontend Pages
 
-| Page | Route | Role | Description |
-|------|-------|------|-------------|
-| Login | `/login` | All | MetaMask wallet authentication |
-| Register | `/register` | All | Account creation with NaCl keypair generation |
-| Patient Dashboard | `/patient` | Patient | Pending requests, quick actions |
-| My Records | `/patient/my-records` | Patient | View and decrypt own medical records |
-| Grant Access | `/patient/grant-access` | Patient | Select records and share with a doctor |
-| Revoke Access | `/patient/revoke-access` | Patient | Remove a doctor's access to records |
-| Doctor Dashboard | `/doctor` | Doctor | Home panel with actions |
-| Create Record | `/doctor/create-record` | Doctor | Create encrypted medical records |
-| View Records | `/doctor/view-records` | Doctor | View patient records (with permission) |
-| Request Access | `/doctor/request-access` | Doctor | Request patient's approval |
-| Record Viewer | `/record/:cid` | Any auth | Decrypt and display a specific record |
-| Diagnostics Dashboard | `/diagnostics` | Lab | Lab technician home |
-| Upload Report | `/diagnostics/upload-report` | Lab | Upload encrypted lab reports |
-| Admin Panel | `/admin` | SuperAdmin | Add/remove hospitals |
-| Hospital Panel | `/hospital-admin` | Hospital | Manage doctors and labs |
+| Page                  | Route                        | Role       | Description                                   |
+| --------------------- | ---------------------------- | ---------- | --------------------------------------------- |
+| Login                 | `/login`                     | All        | MetaMask wallet authentication                |
+| Register              | `/register`                  | All        | Account creation with NaCl keypair generation |
+| Patient Dashboard     | `/patient`                   | Patient    | Pending requests, quick actions               |
+| My Records            | `/patient/my-records`        | Patient    | View and decrypt own medical records          |
+| Grant Access          | `/patient/grant-access`      | Patient    | Select records and share with a doctor        |
+| Revoke Access         | `/patient/revoke-access`     | Patient    | Remove a doctor's access to records           |
+| Doctor Dashboard      | `/doctor`                    | Doctor     | Home panel with actions                       |
+| Create Record         | `/doctor/create-record`      | Doctor     | Create encrypted medical records              |
+| View Records          | `/doctor/view-records`       | Doctor     | View patient records (with permission)        |
+| Request Access        | `/doctor/request-access`     | Doctor     | Request patient's approval                    |
+| Record Viewer         | `/record/:cid`               | Any auth   | Decrypt and display a specific record         |
+| Diagnostics Dashboard | `/diagnostics`               | Lab        | Lab technician home                           |
+| Upload Report         | `/diagnostics/upload-report` | Lab        | Upload encrypted lab reports                  |
+| Admin Panel           | `/admin`                     | SuperAdmin | Add/remove hospitals                          |
+| Hospital Panel        | `/hospital-admin`            | Hospital   | Manage doctors and labs                       |
 
 ---
 
@@ -413,7 +425,7 @@ Tracks doctor → patient access request workflow.
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/ssudem/MediRecord.git
+git clone https://github.com/ssudem/Decentralized-medical-record-system.git
 cd MediRecord
 ```
 
@@ -452,7 +464,7 @@ The frontend will start on `http://localhost:5173`.
 
 ### 4. Deploy the Smart Contract
 
-1. Compile and deploy `MedicalRecordSystem.sol` to Ethereum Sepolia using [Remix IDE](https://remix.ethereum.org/) or Hardhat.
+1. **⚠️ SuperAdmin Only:** Compile and deploy `MedicalRecordSystem.sol` to Ethereum Sepolia using [Remix IDE](https://remix.ethereum.org/) or Hardhat. **You must deploy this contract using the SuperAdmin MetaMask wallet only** (the wallet whose private key is set as `SERVER_PRIVATE_KEY` in `.env`).
 2. Copy the deployed contract address.
 3. Update `CONTRACT_ADDRESS` in:
    - `Backend/.env`
@@ -465,23 +477,23 @@ The frontend will start on `http://localhost:5173`.
 
 Create a `.env` file in the `Backend/` directory (see `.env.example`):
 
-| Variable | Description |
-|----------|-------------|
+| Variable             | Description                                         |
+| -------------------- | --------------------------------------------------- |
 | `BLOCKCHAIN_RPC_URL` | Ethereum Sepolia JSON-RPC endpoint (Alchemy/Infura) |
-| `SERVER_PRIVATE_KEY` | SuperAdmin wallet private key (contract deployer) |
-| `CONTRACT_ADDRESS` | Deployed MedicalRecordSystem contract address |
-| `PINATA_API_KEY` | Pinata API key |
-| `PINATA_API_SECRET` | Pinata API secret |
-| `PINATA_JWT` | Pinata JWT for gateway access |
-| `DB_HOST` | MySQL/TiDB host |
-| `DB_PORT` | Database port (default: 4000 for TiDB) |
-| `DB_USER` | Database username |
-| `DB_PASSWORD` | Database password |
-| `DB_NAME` | Database name |
-| `CA` | Path to SSL CA cert (for TiDB Cloud) |
-| `PORT` | Backend server port (default: 3001) |
-| `JWT_SECRET` | JWT signing secret (min 32 chars) |
-| `JWT_EXPIRES_IN` | JWT token lifetime (e.g., `8h`) |
+| `SERVER_PRIVATE_KEY` | SuperAdmin wallet private key (contract deployer)   |
+| `CONTRACT_ADDRESS`   | Deployed MedicalRecordSystem contract address       |
+| `PINATA_API_KEY`     | Pinata API key                                      |
+| `PINATA_API_SECRET`  | Pinata API secret                                   |
+| `PINATA_JWT`         | Pinata JWT for gateway access                       |
+| `DB_HOST`            | MySQL/TiDB host                                     |
+| `DB_PORT`            | Database port (default: 4000 for TiDB)              |
+| `DB_USER`            | Database username                                   |
+| `DB_PASSWORD`        | Database password                                   |
+| `DB_NAME`            | Database name                                       |
+| `CA`                 | Path to SSL CA cert (for TiDB Cloud)                |
+| `PORT`               | Backend server port (default: 3001)                 |
+| `JWT_SECRET`         | JWT signing secret (min 32 chars)                   |
+| `JWT_EXPIRES_IN`     | JWT token lifetime (e.g., `8h`)                     |
 
 ---
 
@@ -489,8 +501,8 @@ Create a `.env` file in the `Backend/` directory (see `.env.example`):
 
 1. **Smart Contract Redeployment:** Any changes to `MedicalRecordSystem.sol` require redeployment. Update `CONTRACT_ADDRESS` and both ABI files afterward.
 2. **Private Keys:** The `SERVER_PRIVATE_KEY` is used only for on-chain operations (adding hospitals). It is never exposed to API responses or logs.
-3. **NaCl Keypairs:** Each user generates a NaCl keypair at registration. The private key is AES-encrypted with a password-derived key and stored in the database.
-4. **Client-Side Decryption:** Medical record data is **never** decrypted on the server. The server only stores and relays encrypted payloads and encrypted keys.
+3. **NaCl Keypairs:** Each user generates a NaCl keypair locally at registration. The private key is AES-encrypted with a MetaMask signature-derived key and stored in the database.
+4. **Zero-Trust Architecture:** Medical record data is **never** decrypted on the server. The server handles AES encryption during record creation, but delegates all decryption and asymmetric AES key wrapping (NaCl) to the client's browser.
 5. **IPFS Persistence:** Records pinned on Pinata persist as long as the Pinata account is active. Consider implementing CID pinning verification for production.
 
 ---

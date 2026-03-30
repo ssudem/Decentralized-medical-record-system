@@ -5,9 +5,12 @@ import API from "../api/axios";
 import { addRecordLabOnChain } from "../utils/blockchain";
 import { Card, Button, Input, Toast } from "../components/UI";
 import { Upload, ArrowLeft, FileText, FlaskConical, FileUp } from "lucide-react";
+import { encryptAESKeyWithNaCl } from "../utils/naclCrypto";
+import nacl from "tweetnacl";
+import naclUtil from "tweetnacl-util";
 
 export default function UploadDiagnostics() {
-  const { walletAddress } = useAuth();
+  const { walletAddress, naclPrivateKey } = useAuth();
   const navigate = useNavigate();
 
   const [toast, setToast] = useState(null);
@@ -87,6 +90,31 @@ export default function UploadDiagnostics() {
       if (!data.success || !data.cid) {
         throw new Error(data.error || "Upload failed");
       }
+
+      // 1b. Encrypt AES key for the patient using lab's NaCl key
+      setToast({ message: "Securing encryption key for patient…", type: "info" });
+      if (!naclPrivateKey) throw new Error("Lab encryption keys not available. Re-login.");
+
+      const aesKeyBytes = Uint8Array.from(atob(data.aesKeyBase64), c => c.charCodeAt(0));
+      const { encryptedKey, nonce: encNonce } = encryptAESKeyWithNaCl(
+        aesKeyBytes,
+        data.patientNaClPublicKey,  // returned by the backend
+        naclPrivateKey
+      );
+
+      // Derive lab's NaCl public key from private key
+      const labSecKey = naclUtil.decodeBase64(naclPrivateKey);
+      const labPubKey = naclUtil.encodeBase64(
+        nacl.box.keyPair.fromSecretKey(labSecKey).publicKey
+      );
+
+      await API.post('/access/store-key', {
+        cid: data.cid,
+        userAddress: patientAddress,
+        encryptedAESKey: encryptedKey,
+        nonce: encNonce,
+        senderNaClPublicKey: labPubKey,
+      });
 
       // 2. Register CID on blockchain via MetaMask
       setToast({ message: "Confirm the blockchain transaction in MetaMask…", type: "info" });

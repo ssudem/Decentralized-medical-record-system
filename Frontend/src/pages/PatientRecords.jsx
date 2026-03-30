@@ -10,7 +10,7 @@ import {
   decryptPdfLocal,
 } from '../utils/naclCrypto';
 
-// ─── Cache helpers (localStorage, keyed by wallet address) ───
+// ─── Cache helpers (sessionStorage, keyed by wallet address) ───
 
 function getCacheKey(address) {
   return `medirecord_cache_${address?.toLowerCase()}`;
@@ -18,7 +18,7 @@ function getCacheKey(address) {
 
 function loadCache(address) {
   try {
-    const raw = localStorage.getItem(getCacheKey(address));
+    const raw = sessionStorage.getItem(getCacheKey(address));
     return raw ? JSON.parse(raw) : {};
   } catch {
     return {};
@@ -27,14 +27,14 @@ function loadCache(address) {
 
 function saveCache(address, cacheMap) {
   try {
-    localStorage.setItem(getCacheKey(address), JSON.stringify(cacheMap));
+    sessionStorage.setItem(getCacheKey(address), JSON.stringify(cacheMap));
   } catch {
-    // localStorage quota exceeded — silently skip caching
+    // sessionStorage quota exceeded — silently skip caching
   }
 }
 
 function clearCache(address) {
-  localStorage.removeItem(getCacheKey(address));
+  sessionStorage.removeItem(getCacheKey(address));
 }
 
 // ─────────────────────────────────────────────

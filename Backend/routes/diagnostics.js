@@ -4,24 +4,23 @@
  *  POST /api/diagnostics/upload — Upload PDF + JSON lab report
  * ============================================================
  *
- *  Now uses NaCl public key (instead of RSA) for AES key encryption.
+ *  The server encrypts the record with AES-256-GCM, uploads to IPFS,
+ *  and returns the AES key. The LAB frontend then encrypts the AES key
+ *  for the patient using the lab’s actual NaCl private key and stores
+ *  it via POST /api/access/store-key.
  */
 
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const nacl = require("tweetnacl");
-const naclUtil = require("tweetnacl-util");
 
 const {
   generateAESKey,
-  encryptAESKeyWithNaCl,
   encryptRecord,
   encryptBuffer,
 } = require("../utils/crypto");
 
 const { uploadToIPFS } = require("../services/ipfsService");
-const { storeEncryptedKey } = require("../services/keyStore");
 const { getUserByEthereumAddress } = require("../services/userStore");
 
 // Multer config — store PDF in memory (max 20 MB)
@@ -115,29 +114,19 @@ router.post("/upload", upload.single("pdfFile"), async (req, res) => {
     const cid = await uploadToIPFS(metadata, encryptedPayload);
     console.log(`[Diagnostics] Uploaded to IPFS: ${cid}`);
 
-    // ── 7. NaCl-encrypt AES key for patient ──
-    const patientPubKeyBytes = naclUtil.decodeBase64(patient.nacl_public_key);
-    const ephemeralKeyPair = nacl.box.keyPair();
+    // ── 7. Return AES key for client-side NaCl encryption ──
+    // The lab frontend will encrypt this for the patient and store
+    // via POST /api/access/store-key with the lab’s actual NaCl pubkey.
+    const aesKeyBase64 = aesKey.toString("base64");
 
-    const { encryptedKey, nonce } = encryptAESKeyWithNaCl(
-      aesKey,
-      patientPubKeyBytes,
-      ephemeralKeyPair.secretKey
-    );
-
-    await storeEncryptedKey(
-      cid,
-      patientAddress,
-      encryptedKey,
-      nonce,
-      naclUtil.encodeBase64(ephemeralKeyPair.publicKey)
-    );
-    console.log(`[Diagnostics] AES key stored for patient: ${patientAddress}`);
+    console.log(`[Diagnostics] Report created, CID: ${cid}. AES key returned to lab for NaCl wrapping.`);
 
     // ── 8. Response ──
     res.status(201).json({
       success: true,
       cid,
+      aesKeyBase64,   // Lab frontend encrypts this for the patient
+      patientNaClPublicKey: patient.nacl_public_key,  // Lab frontend needs this for encryption
       txHash: "pending_metamask",
       message: "Diagnostics report encrypted, uploaded to IPFS, ready for blockchain registration",
     });
