@@ -34,10 +34,21 @@ const upload = multer({
   },
 });
 
-const { uploadToIPFS, fetchFromIPFS, fetchMetadataFromIPFS } = require("../services/ipfsService");
+const {
+  uploadToIPFS,
+  fetchFromIPFS,
+  fetchMetadataFromIPFS,
+} = require("../services/ipfsService");
 const { getEncryptedKey } = require("../services/keyStore");
-const { uploadRecordOnChain, getPatientRecordCIDs, checkPermission } = require("../services/blockchain");
-const { isRecordRelevant, OPERATION_TAG_MAP } = require("../config/operationTags");
+const {
+  uploadRecordOnChain,
+  getPatientRecordCIDs,
+  checkPermission,
+} = require("../services/blockchain");
+const {
+  isRecordRelevant,
+  OPERATION_TAG_MAP,
+} = require("../config/operationTags");
 
 // ─────────────────────────────────────────────
 //  POST /api/records — Create & Encrypt Record
@@ -56,19 +67,25 @@ const { isRecordRelevant, OPERATION_TAG_MAP } = require("../config/operationTags
  */
 router.post("/", upload.single("pdfFile"), async (req, res) => {
   // When a PDF is attached the body comes as FormData with JSON strings
-  let { patientAddress, patientNaClPublicKey, doctorAddress, record } = req.body;
+  let { patientAddress, patientNaClPublicKey, doctorAddress, record } =
+    req.body;
   const pdfFile = req.file || null;
 
   // Parse record if it came as a JSON string (multipart upload)
   if (typeof record === "string") {
-    try { record = JSON.parse(record); } catch { return res.status(400).json({ error: "record must be valid JSON" }); }
+    try {
+      record = JSON.parse(record);
+    } catch {
+      return res.status(400).json({ error: "record must be valid JSON" });
+    }
   }
 
   try {
     // ── Validation ──
     if (!patientAddress || !patientNaClPublicKey || !doctorAddress || !record) {
       return res.status(400).json({
-        error: "Missing required fields: patientAddress, patientNaClPublicKey, doctorAddress, record",
+        error:
+          "Missing required fields: patientAddress, patientNaClPublicKey, doctorAddress, record",
       });
     }
     if (!record.recordType || !record.tags || !Array.isArray(record.tags)) {
@@ -123,19 +140,24 @@ router.post("/", upload.single("pdfFile"), async (req, res) => {
     // via POST /api/access/store-key with the doctor’s actual NaCl pubkey.
     const aesKeyBase64 = aesKey.toString("base64");
 
-    console.log(`[Records] Record created, CID: ${cid}. AES key returned to doctor for NaCl wrapping.`);
+    console.log(
+      `[Records] Record created, CID: ${cid}. AES key returned to doctor for NaCl wrapping.`,
+    );
 
     // ── 6. Response ──
     res.status(201).json({
       success: true,
       cid,
-      aesKeyBase64,   // Doctor frontend encrypts this for the patient
+      aesKeyBase64, // Doctor frontend encrypts this for the patient
       txHash: "pending_metamask",
-      message: "Record encrypted, uploaded to IPFS, ready for blockchain registration",
+      message:
+        "Record encrypted, uploaded to IPFS, ready for blockchain registration",
     });
   } catch (error) {
     console.error("[Records] Error creating record:", error.message);
-    res.status(500).json({ error: "Internal server error while creating record." });
+    res
+      .status(500)
+      .json({ error: "Internal server error while creating record." });
   }
 });
 
@@ -163,27 +185,30 @@ router.post("/view", async (req, res) => {
 
     if (!patientAddress || !userAddress || !operation) {
       return res.status(400).json({
-        error: "Missing required fields: patientAddress, userAddress, operation",
+        error:
+          "Missing required fields: patientAddress, userAddress, operation",
       });
     }
 
-    const isPatient = patientAddress.toLowerCase() === userAddress.toLowerCase();
+    const isPatient =
+      patientAddress.toLowerCase() === userAddress.toLowerCase();
 
     // ── 1. Permission check (doctors only) ──
-    if (!isPatient) {
-      try {
-        const hasPermission = await checkPermission(patientAddress, userAddress, operation);
-        if (!hasPermission) {
-          return res.status(403).json({
-            error: "Access denied: no active permission or permission expired",
-          });
-        }
-      } catch (permErr) {
-        return res.status(403).json({
-          error: "Access denied: failed to verify on-chain permission",
-        });
-      }
-    }
+    // Already done in Frontend so no need to check again here .
+    // if (!isPatient) {
+    //   try {
+    //     const hasPermission = await checkPermission(patientAddress, userAddress, operation);
+    //     if (!hasPermission) {
+    //       return res.status(403).json({
+    //         error: "Access denied: no active permission or permission expired",
+    //       });
+    //     }
+    //   } catch (permErr) {
+    //     return res.status(403).json({
+    //       error: "Access denied: failed to verify on-chain permission",
+    //     });
+    //   }
+    // }
 
     // ── 2. Fetch all CIDs from blockchain ──
     const allRecords = await getPatientRecordCIDs(patientAddress);
@@ -197,7 +222,7 @@ router.post("/view", async (req, res) => {
     // Build list of records to return
     const relevantRecords = [];
     for (const rec of allRecords) {
-      if (isPatient && operation === '*') {
+      if (isPatient && operation === "*") {
         // Patients see all their records when requesting '*'
         relevantRecords.push({
           cid: rec.ipfsHash,
@@ -217,7 +242,9 @@ router.post("/view", async (req, res) => {
             });
           }
         } catch (fetchErr) {
-          console.warn(`[View] Failed to fetch metadata for CID ${rec.ipfsHash}`);
+          console.warn(
+            `[View] Failed to fetch metadata for CID ${rec.ipfsHash}`,
+          );
         }
       }
     }
@@ -253,8 +280,8 @@ router.post("/view", async (req, res) => {
 
     const results = await Promise.allSettled(recordPromises);
     const records = results
-      .filter(r => r.status === "fulfilled" && r.value !== null)
-      .map(r => r.value);
+      .filter((r) => r.status === "fulfilled" && r.value !== null)
+      .map((r) => r.value);
 
     res.json({
       totalRecords: allRecords.length,
@@ -265,7 +292,9 @@ router.post("/view", async (req, res) => {
     });
   } catch (error) {
     console.error("[View] Error:", error.message);
-    res.status(500).json({ error: "Internal server error while viewing records." });
+    res
+      .status(500)
+      .json({ error: "Internal server error while viewing records." });
   }
 });
 

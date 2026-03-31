@@ -46,7 +46,9 @@ function getPool() {
       queueLimit: 0,
     });
 
-    console.log(`[RequestStore] MySQL pool created → ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
+    console.log(
+      `[RequestStore] MySQL pool created → ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
+    );
   }
   return pool;
 }
@@ -66,12 +68,22 @@ function getPool() {
  * @param {string} request.purpose         - Free-text purpose description
  * @returns {Promise<number>} The inserted request's ID
  */
-async function createRequest({ patientAddress, doctorAddress, operation, purpose }) {
+async function createRequest({
+  patientAddress,
+  doctorAddress,
+  operation,
+  purpose,
+}) {
   const p = getPool();
   const [result] = await p.execute(
     `INSERT INTO access_requests (patient_address, doctor_address, operation, purpose, status)
      VALUES (?, ?, ?, ?, 'pending')`,
-    [patientAddress.toLowerCase(), doctorAddress.toLowerCase(), operation, purpose]
+    [
+      patientAddress.toLowerCase(),
+      doctorAddress.toLowerCase(),
+      operation,
+      purpose,
+    ],
   );
   return result.insertId;
 }
@@ -90,7 +102,7 @@ async function getPendingRequestsForPatient(patientAddress) {
      FROM access_requests
      WHERE patient_address = ? AND status = 'pending'
      ORDER BY created_at DESC`,
-    [patientAddress.toLowerCase()]
+    [patientAddress.toLowerCase()],
   );
   return rows;
 }
@@ -104,10 +116,10 @@ async function getPendingRequestsForPatient(patientAddress) {
  */
 async function updateRequestStatus(id, status) {
   const p = getPool();
-  await p.execute(
-    `UPDATE access_requests SET status = ? WHERE id = ?`,
-    [status, id]
-  );
+  await p.execute(`UPDATE access_requests SET status = ? WHERE id = ?`, [
+    status,
+    id,
+  ]);
 }
 
 /**
@@ -122,7 +134,7 @@ async function getRequestById(id) {
   const [rows] = await p.execute(
     `SELECT id, patient_address, doctor_address, operation, purpose, status, created_at
      FROM access_requests WHERE id = ?`,
-    [id]
+    [id],
   );
   return rows.length > 0 ? rows[0] : null;
 }

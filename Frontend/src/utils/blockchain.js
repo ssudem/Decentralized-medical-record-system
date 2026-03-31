@@ -91,6 +91,16 @@ export async function isHospitalValidOnChain(address) {
   return contract.validHospitals(address);
 }
 
+// cheeck permissions for doctor for a specific operation
+export async function checkDoctorPermissionOnChain(
+  patientAddress,
+  doctorAddress,
+  operation,
+) {
+  const contract = await getReadContract();
+  return contract.checkPermission(patientAddress, doctorAddress, operation);
+}
+
 /**
  * Hospital authorizes a doctor on-chain. MetaMask signs the tx.
  */

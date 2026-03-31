@@ -119,7 +119,7 @@ export function Toast({ message, type = "success", onClose }) {
 
   const toastContent = (
     <div
-      className={`fixed top-20 left-1/2 -translate-x-1/2 z-9999 w-auto max-w-md px-5 py-3 rounded-xl border-2 text-sm font-medium shadow-2xl backdrop-blur-xl animate-slide-down flex items-center gap-3 ${colors[type]}`}
+      className={`fixed top-20 left-1/2 -translate-x-1/2 z-9999 w-auto max-w-md px-5 py-3 rounded-xl border-2 text-sm font-medium shadow-2xl backdrop-blur-xl animate-fade-in animate-slide-down flex items-center gap-3 ${colors[type]}`}
     >
       <span className="text-base font-bold shrink-0">{icons[type]}</span>
       <span className="flex-1">{message}</span>

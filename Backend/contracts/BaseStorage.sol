@@ -21,7 +21,7 @@ contract BaseStorage {
     mapping(address => mapping(address => mapping(string => uint256)))
         public accessPermissions;
 
-    // EVENTS (UNCHANGED)
+    // EVENTS 
     event HospitalAdded(address indexed hospital);
     event HospitalRemoved(address indexed hospital);
 
