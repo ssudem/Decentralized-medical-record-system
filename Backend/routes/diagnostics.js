@@ -96,6 +96,7 @@ router.post("/upload", upload.single("pdfFile"), async (req, res) => {
       tags: parsedTags,
       createdAt: new Date().toISOString(),
       patientAddress: patientAddress,
+      labAddress: parsedLabReport.labWallet || undefined,
       originalFileName: pdfFile ? pdfFile.originalname : undefined,
       hasPdf: !!pdfFile,
     };

@@ -227,6 +227,7 @@ router.post("/view", async (req, res) => {
         relevantRecords.push({
           cid: rec.ipfsHash,
           issuedByDoctor: rec.issuedByDoctor,
+          issuedByLab: rec.issuedByLab,
           timestamp: rec.timestamp.toString(),
         });
       } else {
@@ -238,6 +239,7 @@ router.post("/view", async (req, res) => {
               cid: rec.ipfsHash,
               metadata,
               issuedByDoctor: rec.issuedByDoctor,
+              issuedByLab: rec.issuedByLab,
               timestamp: rec.timestamp.toString(),
             });
           }

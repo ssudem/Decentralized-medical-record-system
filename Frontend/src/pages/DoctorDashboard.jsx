@@ -13,6 +13,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import SPECIALTIES from "../constants/specialties";
+import { clearAllDoctorCaches } from "../utils/recordCache";
 
 export default function DoctorDashboard() {
   const { user, walletAddress } = useAuth();
@@ -52,7 +53,7 @@ export default function DoctorDashboard() {
     })();
 
     // Clear doctor view-records cache when returning to dashboard
-    sessionStorage.removeItem('doctor_view_cache');
+    clearAllDoctorCaches();
     sessionStorage.removeItem('doctor_view_last_params');
   }, [walletAddress]);
 

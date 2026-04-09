@@ -1,133 +1,35 @@
 [
   {
     "inputs": [],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "name": "patient", "type": "address" },
-      { "indexed": true, "name": "doctor", "type": "address" },
-      { "indexed": false, "name": "operation", "type": "string" },
-      { "indexed": false, "name": "purpose", "type": "string" },
-      { "indexed": false, "name": "expiresAt", "type": "uint256" }
-    ],
-    "name": "AccessGranted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "name": "patient", "type": "address" },
-      { "indexed": true, "name": "doctor", "type": "address" },
-      { "indexed": false, "name": "operation", "type": "string" }
-    ],
-    "name": "AccessRevoked",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "name": "doctor", "type": "address" },
-      { "indexed": true, "name": "patient", "type": "address" },
-      { "indexed": false, "name": "operation", "type": "string" },
-      { "indexed": false, "name": "resultHash", "type": "string" }
-    ],
-    "name": "ComputationLogged",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "name": "doctor", "type": "address" },
-      { "indexed": true, "name": "hospital", "type": "address" }
-    ],
-    "name": "DoctorAuthorized",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "name": "doctor", "type": "address" },
-      { "indexed": true, "name": "patient", "type": "address" },
-      { "indexed": false, "name": "operation", "type": "string" },
-      { "indexed": false, "name": "timestamp", "type": "uint256" }
-    ],
-    "name": "DoctorRecordAccess",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "name": "hospital", "type": "address" }
-    ],
-    "name": "HospitalAdded",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "name": "hospital", "type": "address" }
-    ],
-    "name": "HospitalRemoved",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "name": "doctor", "type": "address" },
-      { "indexed": true, "name": "hospital", "type": "address" }
-    ],
-    "name": "DoctorUnauthorized",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "name": "lab", "type": "address" },
-      { "indexed": true, "name": "hospital", "type": "address" }
-    ],
-    "name": "DiagnosticsLabUnauthorized",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "name": "patient", "type": "address" },
-      { "indexed": true, "name": "doctor", "type": "address" },
-      { "indexed": false, "name": "ipfsHash", "type": "string" }
-    ],
-    "name": "RecordUploaded",
-    "type": "event"
+    "name": "AccessDenied",
+    "type": "error"
   },
   {
     "inputs": [
-      { "name": "_patient", "type": "address" },
-      { "name": "_doctor", "type": "address" },
-      { "name": "_operation", "type": "string" }
+      {
+        "internalType": "address",
+        "name": "_hospital",
+        "type": "address"
+      }
     ],
-    "name": "accessPermissions",
-    "outputs": [{ "name": "", "type": "uint256" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "name": "_hospital", "type": "address" }],
     "name": "addHospital",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
-    "inputs": [{ "name": "_doctor", "type": "address" }],
-    "name": "authorizeDoctor",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    "inputs": [],
+    "name": "AlreadyLinked",
+    "type": "error"
   },
   {
-    "inputs": [{ "name": "_lab", "type": "address" }],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_lab",
+        "type": "address"
+      }
+    ],
     "name": "authorizeDiagnosticsLab",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -135,67 +37,254 @@
   },
   {
     "inputs": [
-      { "name": "_patient", "type": "address" },
-      { "name": "_doctor", "type": "address" },
-      { "name": "_operation", "type": "string" }
-    ],
-    "name": "checkPermission",
-    "outputs": [{ "name": "", "type": "bool" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "name": "_doctor", "type": "address" }],
-    "name": "doctorToHospital",
-    "outputs": [{ "name": "", "type": "address" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "name": "", "type": "address" }],
-    "name": "diagnosticsLabToHospital",
-    "outputs": [{ "name": "", "type": "address" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "name": "_patient", "type": "address" },
-      { "name": "_doctor", "type": "address" },
-      { "name": "_operation", "type": "string" }
-    ],
-    "name": "getAccessExpiry",
-    "outputs": [{ "name": "", "type": "uint256" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "name": "_patient", "type": "address" },
-      { "name": "_operation", "type": "string" }
-    ],
-    "name": "getPatientRecords",
-    "outputs": [
       {
-        "components": [
-          { "name": "ipfsHash", "type": "string" },
-          { "name": "issuedByDoctor", "type": "address" },
-          { "name": "issuedByLab", "type": "address" },
-          { "name": "timestamp", "type": "uint256" }
-        ],
-        "name": "",
-        "type": "tuple[]"
+        "internalType": "address",
+        "name": "_doctor",
+        "type": "address"
       }
     ],
+    "name": "authorizeDoctor",
+    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "InvalidDuration",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotRegistered",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "Unauthorized",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
     "inputs": [
-      { "name": "_doctor", "type": "address" },
-      { "name": "_operation", "type": "string" },
-      { "name": "_purpose", "type": "string" },
-      { "name": "_durationSeconds", "type": "uint256" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "patient",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "doctor",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "operation",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "purpose",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "expiresAt",
+        "type": "uint256"
+      }
+    ],
+    "name": "AccessGranted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "patient",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "doctor",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "operation",
+        "type": "bytes32"
+      }
+    ],
+    "name": "AccessRevoked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "doctor",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "patient",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "operation",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "resultHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "ComputationLogged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "lab",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "hospital",
+        "type": "address"
+      }
+    ],
+    "name": "DiagnosticsLabAuthorized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "lab",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "hospital",
+        "type": "address"
+      }
+    ],
+    "name": "DiagnosticsLabUnauthorized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "doctor",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "hospital",
+        "type": "address"
+      }
+    ],
+    "name": "DoctorAuthorized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "doctor",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "patient",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "operation",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "DoctorRecordAccess",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "doctor",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "hospital",
+        "type": "address"
+      }
+    ],
+    "name": "DoctorUnauthorized",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_doctor",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_operation",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_purpose",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_durationSeconds",
+        "type": "uint256"
+      }
     ],
     "name": "grantAccess",
     "outputs": [],
@@ -203,14 +292,336 @@
     "type": "function"
   },
   {
+    "anonymous": false,
     "inputs": [
-      { "name": "_patient", "type": "address" },
-      { "name": "_operation", "type": "string" },
-      { "name": "_resultHash", "type": "string" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "hospital",
+        "type": "address"
+      }
     ],
-    "name": "logComputation",
+    "name": "HospitalAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "hospital",
+        "type": "address"
+      }
+    ],
+    "name": "HospitalRemoved",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_patient",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_operation",
+        "type": "string"
+      }
+    ],
+    "name": "logDoctorAccess",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "patient",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "issuer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "ipfsHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "RecordUploaded",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_hospital",
+        "type": "address"
+      }
+    ],
+    "name": "removeHospital",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_doctor",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_operation",
+        "type": "string"
+      }
+    ],
+    "name": "revokeAccess",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_lab",
+        "type": "address"
+      }
+    ],
+    "name": "unauthorizeDiagnosticsLab",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_doctor",
+        "type": "address"
+      }
+    ],
+    "name": "unauthorizeDoctor",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_patient",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_ipfsHash",
+        "type": "string"
+      }
+    ],
+    "name": "uploadRecord",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_patient",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_ipfsHash",
+        "type": "string"
+      }
+    ],
+    "name": "uploadRecordLab",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_patient",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_doctor",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_operation",
+        "type": "string"
+      }
+    ],
+    "name": "accessPermissions",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_patient",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_doctor",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_operation",
+        "type": "string"
+      }
+    ],
+    "name": "checkPermission",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "diagnosticsLabToHospital",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "doctorToHospital",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_patient",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_doctor",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_operation",
+        "type": "string"
+      }
+    ],
+    "name": "getAccessExpiry",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_patient",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_operation",
+        "type": "string"
+      }
+    ],
+    "name": "getPatientRecords",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "issuedByDoctor",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "issuedByLab",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "timestamp",
+            "type": "uint64"
+          },
+          {
+            "internalType": "string",
+            "name": "ipfsHash",
+            "type": "string"
+          }
+        ],
+        "internalType": "struct BaseStorage.Record[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -219,11 +630,28 @@
     "outputs": [
       {
         "components": [
-          { "name": "ipfsHash", "type": "string" },
-          { "name": "issuedByDoctor", "type": "address" },
-          { "name": "issuedByLab", "type": "address" },
-          { "name": "timestamp", "type": "uint256" }
+          {
+            "internalType": "address",
+            "name": "issuedByDoctor",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "issuedByLab",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "timestamp",
+            "type": "uint64"
+          },
+          {
+            "internalType": "string",
+            "name": "ipfsHash",
+            "type": "string"
+          }
         ],
+        "internalType": "struct BaseStorage.Record[]",
         "name": "",
         "type": "tuple[]"
       }
@@ -232,77 +660,35 @@
     "type": "function"
   },
   {
-    "inputs": [
-      { "name": "_doctor", "type": "address" },
-      { "name": "_operation", "type": "string" }
-    ],
-    "name": "revokeAccess",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "superAdmin",
-    "outputs": [{ "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "name": "_patient", "type": "address" },
-      { "name": "_ipfsHash", "type": "string" }
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    "name": "uploadRecord",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "name": "", "type": "address" }],
     "name": "validHospitals",
-    "outputs": [{ "name": "", "type": "bool" }],
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "name": "lab", "type": "address" },
-      { "indexed": true, "name": "hospital", "type": "address" }
-    ],
-    "name": "DiagnosticsLabAuthorized",
-    "type": "event"
-  },
-  {
-    "inputs": [
-      { "name": "_patient", "type": "address" },
-      { "name": "_ipfsHash", "type": "string" }
-    ],
-    "name": "uploadRecordLab",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "name": "_hospital", "type": "address" }],
-    "name": "removeHospital",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "name": "_doctor", "type": "address" }],
-    "name": "unauthorizeDoctor",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "name": "_lab", "type": "address" }],
-    "name": "unauthorizeDiagnosticsLab",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   }
 ]

@@ -148,8 +148,6 @@ async function getPatientRecordCIDs(patientAddress) {
 async function uploadRecordOnChain(patientAddress, cid, doctorPrivateKey) {
   const p = getProvider();
 
-  // Create an ephemeral wallet — key exists only for the duration of this function.
-  // ⚠️  Do NOT log doctorPrivateKey or the wallet's private key under any circumstance.
   const doctorWallet = new ethers.Wallet(doctorPrivateKey, p);
   const doctorContract = new ethers.Contract(
     process.env.CONTRACT_ADDRESS,

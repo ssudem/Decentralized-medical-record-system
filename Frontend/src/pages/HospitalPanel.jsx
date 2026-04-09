@@ -5,10 +5,20 @@ import {
   authorizeDiagnosticsLabOnChain,
   unauthorizeDoctorOnChain as unauthorizeDoctorOnChainFn,
   unauthorizeDiagnosticsLabOnChain as unauthorizeLabOnChainFn,
+  getDoctorHospital,
+  getDiagnosticsLabHospital,
 } from "../utils/blockchain";
 import API from "../api/axios";
 import { Card, Button, Input, Toast } from "../components/UI";
-import { UserCheck, Building2, Search, ShieldCheck, FlaskConical, Trash2, UserX } from "lucide-react";
+import {
+  UserCheck,
+  Building2,
+  Search,
+  ShieldCheck,
+  FlaskConical,
+  Trash2,
+  UserX,
+} from "lucide-react";
 
 export default function HospitalPanel() {
   const { walletAddress, isHospitalAdmin } = useAuth();
@@ -46,12 +56,57 @@ export default function HospitalPanel() {
     if (!doctorAddr) return;
     setAuthLoading(true);
     try {
-      setToast({ message: "Confirm the transaction in MetaMask…", type: "info" });
+      // Check if this doctor is already linked to a hospital
+      const hospitalOfDoctor = await getDoctorHospital(doctorAddr);
+      if (
+        hospitalOfDoctor &&
+        hospitalOfDoctor !== "0x0000000000000000000000000000000000000000"
+      ) {
+        setToast({
+          message: `Doctor ${doctorAddr.slice(
+            0,
+            8,
+          )}… is already linked to a hospital (${hospitalOfDoctor.slice(
+            0,
+            8,
+          )}…). Cannot re-authorize.`,
+          type: "success",
+        });
+        setAuthLoading(false);
+        return;
+      }
+
+      // Check if it is a diagnostics lab address that is already linked to a hospital
+      const hospitalOfLab = await getDiagnosticsLabHospital(doctorAddr);
+      if (
+        hospitalOfLab &&
+        hospitalOfLab !== "0x0000000000000000000000000000000000000000"
+      ) {
+        setToast({
+          message: `This address (${doctorAddr.slice(
+            0,
+            8,
+          )}…) is already linked to a hospital as a Diagnostics Lab.`,
+          type: "error",
+        });
+        setLabAuthLoading(false);
+        return;
+      }
+      setToast({
+        message: "Confirm the transaction in MetaMask…",
+        type: "info",
+      });
       await authorizeDoctorOnChain(doctorAddr);
-      setToast({ message: `Doctor ${doctorAddr.slice(0, 8)}… authorized!`, type: "success" });
+      setToast({
+        message: `Doctor ${doctorAddr.slice(0, 8)}… authorized!`,
+        type: "success",
+      });
       setDoctorAddr("");
     } catch (err) {
-      setToast({ message: err?.reason || err?.message || "Authorization failed", type: "error" });
+      setToast({
+        message: err?.reason || err?.message || "Authorization failed",
+        type: "error",
+      });
     } finally {
       setAuthLoading(false);
     }
@@ -63,12 +118,21 @@ export default function HospitalPanel() {
     if (!removeDoctorAddr) return;
     setRemoveDoctorLoading(true);
     try {
-      setToast({ message: "Confirm the transaction in MetaMask…", type: "info" });
+      setToast({
+        message: "Confirm the transaction in MetaMask…",
+        type: "info",
+      });
       await unauthorizeDoctorOnChainFn(removeDoctorAddr);
-      setToast({ message: `Doctor ${removeDoctorAddr.slice(0, 8)}… removed!`, type: "success" });
+      setToast({
+        message: `Doctor ${removeDoctorAddr.slice(0, 8)}… removed!`,
+        type: "success",
+      });
       setRemoveDoctorAddr("");
     } catch (err) {
-      setToast({ message: err?.reason || err?.message || "Failed to remove doctor", type: "error" });
+      setToast({
+        message: err?.reason || err?.message || "Failed to remove doctor",
+        type: "error",
+      });
     } finally {
       setRemoveDoctorLoading(false);
     }
@@ -80,12 +144,60 @@ export default function HospitalPanel() {
     if (!labAddr) return;
     setLabAuthLoading(true);
     try {
-      setToast({ message: "Confirm the transaction in MetaMask…", type: "info" });
+      // Check if this lab is already linked to a hospital
+      const hospitalOfLab = await getDiagnosticsLabHospital(labAddr);
+      if (
+        hospitalOfLab &&
+        hospitalOfLab !== "0x0000000000000000000000000000000000000000"
+      ) {
+        setToast({
+          message: `Lab ${labAddr.slice(
+            0,
+            8,
+          )}… is already linked to a hospital (${hospitalOfLab.slice(
+            0,
+            8,
+          )}…). Cannot re-authorize.`,
+          type: "success",
+        });
+        setLabAuthLoading(false);
+        return;
+      }
+
+      // check if it is a doctor address that is already linked to a hospital
+      const hospitalOfDoctor = await getDoctorHospital(labAddr);
+      if (
+        hospitalOfDoctor &&
+        hospitalOfDoctor !== "0x0000000000000000000000000000000000000000"
+      ) {
+        setToast({
+          message: `Doctor ${labAddr.slice(
+            0,
+            8,
+          )}… is already linked to a hospital (${hospitalOfDoctor.slice(
+            0,
+            8,
+          )}…). Cannot authorize as a diagnostics lab.`,
+          type: "error",
+        });
+        setLabAuthLoading(false);
+        return;
+      }
+      setToast({
+        message: "Confirm the transaction in MetaMask…",
+        type: "info",
+      });
       await authorizeDiagnosticsLabOnChain(labAddr);
-      setToast({ message: `Lab ${labAddr.slice(0, 8)}… authorized!`, type: "success" });
+      setToast({
+        message: `Lab ${labAddr.slice(0, 8)}… authorized!`,
+        type: "success",
+      });
       setLabAddr("");
     } catch (err) {
-      setToast({ message: err?.reason || err?.message || "Authorization failed", type: "error" });
+      setToast({
+        message: err?.reason || err?.message || "Authorization failed",
+        type: "error",
+      });
     } finally {
       setLabAuthLoading(false);
     }
@@ -97,12 +209,22 @@ export default function HospitalPanel() {
     if (!removeLabAddr) return;
     setRemoveLabLoading(true);
     try {
-      setToast({ message: "Confirm the transaction in MetaMask…", type: "info" });
+      setToast({
+        message: "Confirm the transaction in MetaMask…",
+        type: "info",
+      });
       await unauthorizeLabOnChainFn(removeLabAddr);
-      setToast({ message: `Lab ${removeLabAddr.slice(0, 8)}… removed!`, type: "success" });
+      setToast({
+        message: `Lab ${removeLabAddr.slice(0, 8)}… removed!`,
+        type: "success",
+      });
       setRemoveLabAddr("");
     } catch (err) {
-      setToast({ message: err?.reason || err?.message || "Failed to remove diagnostics lab", type: "error" });
+      setToast({
+        message:
+          err?.reason || err?.message || "Failed to remove diagnostics lab",
+        type: "error",
+      });
     } finally {
       setRemoveLabLoading(false);
     }
@@ -115,7 +237,9 @@ export default function HospitalPanel() {
     setCheckResult(null);
     try {
       const { data } = await API.get(`/hospitals/doctor/${checkAddr}`);
-      const isLinked = data.hospitalAddress && data.hospitalAddress !== "0x0000000000000000000000000000000000000000";
+      const isLinked =
+        data.hospitalAddress &&
+        data.hospitalAddress !== "0x0000000000000000000000000000000000000000";
       setCheckResult({ ...data, isLinked });
     } catch {
       setToast({ message: "Lookup failed", type: "error" });
@@ -130,8 +254,12 @@ export default function HospitalPanel() {
     setCheckLabLoading(true);
     setCheckLabResult(null);
     try {
-      const { data } = await API.get(`/hospitals/diagnostics-lab/${checkLabAddr}`);
-      const isLinked = data.hospitalAddress && data.hospitalAddress !== "0x0000000000000000000000000000000000000000";
+      const { data } = await API.get(
+        `/hospitals/diagnostics-lab/${checkLabAddr}`,
+      );
+      const isLinked =
+        data.hospitalAddress &&
+        data.hospitalAddress !== "0x0000000000000000000000000000000000000000";
       setCheckLabResult({ ...data, isLinked });
     } catch {
       setToast({ message: "Lab lookup failed", type: "error" });
@@ -145,10 +273,13 @@ export default function HospitalPanel() {
         <Building2 className="w-16 h-16 text-danger mb-4 opacity-80" />
         <h1 className="text-3xl font-bold text-danger mb-2">Access Denied</h1>
         <p className="text-text-secondary">
-          The connected wallet (<span className="font-mono text-xs">{walletAddress || "None"}</span>) is not registered as a hospital.
+          The connected wallet (
+          <span className="font-mono text-xs">{walletAddress || "None"}</span>)
+          is not registered as a hospital.
         </p>
         <p className="text-text-secondary mt-2">
-          Please switch to an authorized hospital wallet in MetaMask to view this dashboard.
+          Please switch to an authorized hospital wallet in MetaMask to view
+          this dashboard.
         </p>
       </div>
     );
@@ -165,7 +296,9 @@ export default function HospitalPanel() {
         <p className="text-text-secondary text-sm mt-1 flex items-center gap-2">
           <Building2 className="w-4 h-4 text-success" />
           Hospital wallet:{" "}
-          <span className="font-mono text-xs text-primary">{walletAddress || "Not connected"}</span>
+          <span className="font-mono text-xs text-primary">
+            {walletAddress || "Not connected"}
+          </span>
         </p>
       </div>
 
@@ -176,13 +309,22 @@ export default function HospitalPanel() {
         </h2>
         <Card>
           <form onSubmit={handleAuthorize} className="flex gap-3 items-end">
-            <Input id="auth-doc" label="Doctor Ethereum Address" placeholder="0x…"
-              value={doctorAddr} onChange={(e) => setDoctorAddr(e.target.value)} required className="flex-1" />
+            <Input
+              id="auth-doc"
+              label="Doctor Ethereum Address"
+              placeholder="0x…"
+              value={doctorAddr}
+              onChange={(e) => setDoctorAddr(e.target.value)}
+              required
+              className="flex-1"
+            />
             <Button type="submit" loading={authLoading}>
               <UserCheck className="w-4 h-4" /> Authorize
             </Button>
           </form>
-          <p className="text-xs text-text-muted mt-3">MetaMask will prompt you to sign the on-chain transaction.</p>
+          <p className="text-xs text-text-muted mt-3">
+            MetaMask will prompt you to sign the on-chain transaction.
+          </p>
         </Card>
       </section>
 
@@ -193,14 +335,26 @@ export default function HospitalPanel() {
         </h2>
         <Card>
           <form onSubmit={handleRemoveDoctor} className="flex gap-3 items-end">
-            <Input id="remove-doc" label="Doctor Ethereum Address" placeholder="0x…"
-              value={removeDoctorAddr} onChange={(e) => setRemoveDoctorAddr(e.target.value)} required className="flex-1" />
-            <Button type="submit" loading={removeDoctorLoading} variant="danger">
+            <Input
+              id="remove-doc"
+              label="Doctor Ethereum Address"
+              placeholder="0x…"
+              value={removeDoctorAddr}
+              onChange={(e) => setRemoveDoctorAddr(e.target.value)}
+              required
+              className="flex-1"
+            />
+            <Button
+              type="submit"
+              loading={removeDoctorLoading}
+              variant="danger"
+            >
               <Trash2 className="w-4 h-4" /> Remove
             </Button>
           </form>
           <p className="text-xs text-text-muted mt-3">
-            ⚠️ Only doctors authorized by your hospital can be removed. MetaMask will prompt you.
+            ⚠️ Only doctors authorized by your hospital can be removed. MetaMask
+            will prompt you.
           </p>
         </Card>
       </section>
@@ -208,18 +362,27 @@ export default function HospitalPanel() {
       {/* ── Authorize Diagnostics Lab ── */}
       <section>
         <h2 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-          <FlaskConical className="w-5 h-5 text-accent" /> Authorize Diagnostics Lab
+          <FlaskConical className="w-5 h-5 text-accent" /> Authorize Diagnostics
+          Lab
         </h2>
         <Card>
           <form onSubmit={handleAuthorizeLab} className="flex gap-3 items-end">
-            <Input id="auth-lab" label="Diagnostics Lab Ethereum Address" placeholder="0x…"
-              value={labAddr} onChange={(e) => setLabAddr(e.target.value)} required className="flex-1" />
+            <Input
+              id="auth-lab"
+              label="Diagnostics Lab Ethereum Address"
+              placeholder="0x…"
+              value={labAddr}
+              onChange={(e) => setLabAddr(e.target.value)}
+              required
+              className="flex-1"
+            />
             <Button type="submit" loading={labAuthLoading}>
               <FlaskConical className="w-4 h-4" /> Authorize
             </Button>
           </form>
           <p className="text-xs text-text-muted mt-3">
-            MetaMask will prompt you to sign the on-chain transaction to authorize this diagnostics lab.
+            MetaMask will prompt you to sign the on-chain transaction to
+            authorize this diagnostics lab.
           </p>
         </Card>
       </section>
@@ -231,14 +394,22 @@ export default function HospitalPanel() {
         </h2>
         <Card>
           <form onSubmit={handleRemoveLab} className="flex gap-3 items-end">
-            <Input id="remove-lab" label="Diagnostics Lab Ethereum Address" placeholder="0x…"
-              value={removeLabAddr} onChange={(e) => setRemoveLabAddr(e.target.value)} required className="flex-1" />
+            <Input
+              id="remove-lab"
+              label="Diagnostics Lab Ethereum Address"
+              placeholder="0x…"
+              value={removeLabAddr}
+              onChange={(e) => setRemoveLabAddr(e.target.value)}
+              required
+              className="flex-1"
+            />
             <Button type="submit" loading={removeLabLoading} variant="danger">
               <Trash2 className="w-4 h-4" /> Remove
             </Button>
           </form>
           <p className="text-xs text-text-muted mt-3">
-            ⚠️ Only labs authorized by your hospital can be removed. MetaMask will prompt you.
+            ⚠️ Only labs authorized by your hospital can be removed. MetaMask
+            will prompt you.
           </p>
         </Card>
       </section>
@@ -250,16 +421,31 @@ export default function HospitalPanel() {
         </h2>
         <Card>
           <div className="flex gap-3 items-end mb-4">
-            <Input id="chk-doc" label="Doctor Ethereum Address" placeholder="0x…"
-              value={checkAddr} onChange={(e) => setCheckAddr(e.target.value)} className="flex-1" />
-            <Button type="button" variant="secondary" onClick={handleCheckDoctor} loading={checkLoading}>
+            <Input
+              id="chk-doc"
+              label="Doctor Ethereum Address"
+              placeholder="0x…"
+              value={checkAddr}
+              onChange={(e) => setCheckAddr(e.target.value)}
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleCheckDoctor}
+              loading={checkLoading}
+            >
               <Search className="w-4 h-4" /> Check
             </Button>
           </div>
           {checkResult && (
-            <div className={`p-3 rounded-xl border text-sm animate-fade-in ${
-              checkResult.isLinked ? "bg-success/5 border-success/20 text-success" : "bg-warning/5 border-warning/20 text-warning"
-            }`}>
+            <div
+              className={`p-3 rounded-xl border text-sm animate-fade-in ${
+                checkResult.isLinked
+                  ? "bg-success/5 border-success/20 text-success"
+                  : "bg-warning/5 border-warning/20 text-warning"
+              }`}
+            >
               <ShieldCheck className="w-4 h-4 inline mr-1.5" />
               {checkResult.isLinked
                 ? `✅ Doctor ${checkResult.doctorAddress} is linked to hospital ${checkResult.hospitalAddress}.`
@@ -272,20 +458,36 @@ export default function HospitalPanel() {
       {/* ── Check Diagnostics Lab Status ── */}
       <section>
         <h2 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-          <Search className="w-5 h-5 text-accent" /> Check Diagnostics Lab Status
+          <Search className="w-5 h-5 text-accent" /> Check Diagnostics Lab
+          Status
         </h2>
         <Card>
           <div className="flex gap-3 items-end mb-4">
-            <Input id="chk-lab" label="Diagnostics Lab Ethereum Address" placeholder="0x…"
-              value={checkLabAddr} onChange={(e) => setCheckLabAddr(e.target.value)} className="flex-1" />
-            <Button type="button" variant="secondary" onClick={handleCheckLab} loading={checkLabLoading}>
+            <Input
+              id="chk-lab"
+              label="Diagnostics Lab Ethereum Address"
+              placeholder="0x…"
+              value={checkLabAddr}
+              onChange={(e) => setCheckLabAddr(e.target.value)}
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleCheckLab}
+              loading={checkLabLoading}
+            >
               <Search className="w-4 h-4" /> Check
             </Button>
           </div>
           {checkLabResult && (
-            <div className={`p-3 rounded-xl border text-sm animate-fade-in ${
-              checkLabResult.isLinked ? "bg-success/5 border-success/20 text-success" : "bg-warning/5 border-warning/20 text-warning"
-            }`}>
+            <div
+              className={`p-3 rounded-xl border text-sm animate-fade-in ${
+                checkLabResult.isLinked
+                  ? "bg-success/5 border-success/20 text-success"
+                  : "bg-warning/5 border-warning/20 text-warning"
+              }`}
+            >
               <ShieldCheck className="w-4 h-4 inline mr-1.5" />
               {checkLabResult.isLinked
                 ? `✅ Lab ${checkLabResult.labAddress} is linked to hospital ${checkLabResult.hospitalAddress}.`

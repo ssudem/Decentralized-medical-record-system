@@ -17,7 +17,7 @@ export default function RecordViewer() {
     );
   }
 
-  const { record, metadata, cid, timestamp, pdfBase64 } = state.recordData;
+  const { record, metadata, cid, timestamp, pdfBase64, issuedByDoctor, issuedByLab } = state.recordData;
   const isDoctor = state.isDoctor || false;
 
   const DetailRow = ({ icon: Icon, label, value, colSpan = false }) => {
@@ -95,6 +95,30 @@ export default function RecordViewer() {
                 <Clock className="w-4 h-4 text-primary" />
                 <span>Date: <strong className="text-text-primary">{new Date(record.createdAt || Number(timestamp)*1000).toLocaleString()}</strong></span>
               </div>
+              {/* ── Issued By ── */}
+              {(() => {
+                const ZERO = "0x0000000000000000000000000000000000000000";
+                const docAddr = (issuedByDoctor && issuedByDoctor !== ZERO) ? issuedByDoctor
+                  : (metadata?.doctorAddress || record?.doctorAddress || null);
+                const labAddr = (issuedByLab && issuedByLab !== ZERO) ? issuedByLab
+                  : (metadata?.labAddress || null);
+                return (
+                  <>
+                    {docAddr && (
+                      <div className="flex items-center gap-2">
+                        <Stethoscope className="w-4 h-4 text-success" />
+                        <span>Doctor: <strong className="font-mono text-text-primary">{docAddr.slice(0, 6)}…{docAddr.slice(-4)}</strong></span>
+                      </div>
+                    )}
+                    {labAddr && (
+                      <div className="flex items-center gap-2">
+                        <FlaskConical className="w-4 h-4 text-accent" />
+                        <span>Lab: <strong className="font-mono text-text-primary">{labAddr.slice(0, 6)}…{labAddr.slice(-4)}</strong></span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
 

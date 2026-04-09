@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.26;
 
 import "./Patient.sol";
 
 contract MedicalRecordSystem is Patient {
-    constructor() {
-        superAdmin = msg.sender;
-    }
 
     function addHospital(address _hospital) external onlyAdmin {
         _addHospital(_hospital);
@@ -34,35 +31,35 @@ contract MedicalRecordSystem is Patient {
 
     function uploadRecord(
         address _patient,
-        string memory _ipfsHash
+        string calldata _ipfsHash
     ) external onlyDoctor {
         _uploadRecord(_patient, _ipfsHash);
     }
 
     function uploadRecordLab(
         address _patient,
-        string memory _ipfsHash
+        string calldata _ipfsHash
     ) external onlyDiagnosticsLab {
         _uploadRecordLab(_patient, _ipfsHash);
     }
 
     function grantAccess(
         address _doctor,
-        string memory _operation,
-        string memory _purpose,
+        string calldata _operation,
+        string calldata _purpose,
         uint256 _durationSeconds
     ) external {
         _grantAccess(_doctor, _operation, _purpose, _durationSeconds);
     }
 
-    function revokeAccess(address _doctor, string memory _operation) external {
+    function revokeAccess(address _doctor, string calldata _operation) external {
         _revokeAccess(_doctor, _operation);
     }
 
     function checkPermission(
         address _patient,
         address _doctor,
-        string memory _operation
+        string calldata _operation
     ) public view returns (bool) {
         return _checkPermission(_patient, _doctor, _operation);
     }
@@ -70,16 +67,26 @@ contract MedicalRecordSystem is Patient {
     function getAccessExpiry(
         address _patient,
         address _doctor,
-        string memory _operation
+        string calldata _operation
     ) external view returns (uint256) {
-        return accessPermissions[_patient][_doctor][_operation];
+        return _accessPermissions[_patient][_doctor][keccak256(bytes(_operation))];
     }
 
+    // GAS OPT: now `view` — event moved to logDoctorAccess()
     function getPatientRecords(
         address _patient,
-        string memory _operation
-    ) external returns (Record[] memory) {
+        string calldata _operation
+    ) external view returns (Record[] memory) {
         return _getPatientRecords(_patient, _operation);
+    }
+
+    /// @notice On-chain audit log for doctor record access — call separately when logging is needed.
+    ///         This is a NEW function (additive ABI change, does not break existing callers).
+    function logDoctorAccess(
+        address _patient,
+        string calldata _operation
+    ) external {
+        _logDoctorAccess(_patient, _operation);
     }
 
     function myRecords() external view returns (Record[] memory) {

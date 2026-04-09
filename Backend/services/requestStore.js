@@ -44,6 +44,18 @@ function getPool() {
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
+      connectTimeout: 10000,        // 10s — fail fast on bad connections
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 30000,  // 30s — keepalive before TiDB idle-kills the connection
+    });
+
+    // Destroy stale connections on ECONNRESET so the pool auto-reconnects
+    pool.on("connection", (conn) => {
+      conn.on("error", (err) => {
+        if (err.code === "ECONNRESET" || err.code === "PROTOCOL_CONNECTION_LOST") {
+          console.warn("[RequestStore] DB connection lost, removing from pool:", err.code);
+        }
+      });
     });
 
     console.log(
@@ -51,6 +63,22 @@ function getPool() {
     );
   }
   return pool;
+}
+
+/**
+ * Execute a DB query with one automatic retry on connection reset.
+ */
+async function withRetry(fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err.code === "ECONNRESET" || err.code === "PROTOCOL_CONNECTION_LOST") {
+      console.warn("[RequestStore] Connection lost, retrying once…");
+      pool = null;
+      return await fn();
+    }
+    throw err;
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -74,18 +102,20 @@ async function createRequest({
   operation,
   purpose,
 }) {
-  const p = getPool();
-  const [result] = await p.execute(
-    `INSERT INTO access_requests (patient_address, doctor_address, operation, purpose, status)
-     VALUES (?, ?, ?, ?, 'pending')`,
-    [
-      patientAddress.toLowerCase(),
-      doctorAddress.toLowerCase(),
-      operation,
-      purpose,
-    ],
-  );
-  return result.insertId;
+  return withRetry(async () => {
+    const p = getPool();
+    const [result] = await p.execute(
+      `INSERT INTO access_requests (patient_address, doctor_address, operation, purpose, status)
+       VALUES (?, ?, ?, ?, 'pending')`,
+      [
+        patientAddress.toLowerCase(),
+        doctorAddress.toLowerCase(),
+        operation,
+        purpose,
+      ],
+    );
+    return result.insertId;
+  });
 }
 
 /**
@@ -96,15 +126,17 @@ async function createRequest({
  * @returns {Promise<object[]>} Array of pending request rows
  */
 async function getPendingRequestsForPatient(patientAddress) {
-  const p = getPool();
-  const [rows] = await p.execute(
-    `SELECT id, patient_address, doctor_address, operation, purpose, status, created_at
-     FROM access_requests
-     WHERE patient_address = ? AND status = 'pending'
-     ORDER BY created_at DESC`,
-    [patientAddress.toLowerCase()],
-  );
-  return rows;
+  return withRetry(async () => {
+    const p = getPool();
+    const [rows] = await p.execute(
+      `SELECT id, patient_address, doctor_address, operation, purpose, status, created_at
+       FROM access_requests
+       WHERE patient_address = ? AND status = 'pending'
+       ORDER BY created_at DESC`,
+      [patientAddress.toLowerCase()],
+    );
+    return rows;
+  });
 }
 
 /**
@@ -115,11 +147,13 @@ async function getPendingRequestsForPatient(patientAddress) {
  * @param {string} status - New status: 'approved' or 'rejected'
  */
 async function updateRequestStatus(id, status) {
-  const p = getPool();
-  await p.execute(`UPDATE access_requests SET status = ? WHERE id = ?`, [
-    status,
-    id,
-  ]);
+  return withRetry(async () => {
+    const p = getPool();
+    await p.execute(`UPDATE access_requests SET status = ? WHERE id = ?`, [
+      status,
+      id,
+    ]);
+  });
 }
 
 /**
@@ -130,13 +164,15 @@ async function updateRequestStatus(id, status) {
  * @returns {Promise<object|null>} Request row or null
  */
 async function getRequestById(id) {
-  const p = getPool();
-  const [rows] = await p.execute(
-    `SELECT id, patient_address, doctor_address, operation, purpose, status, created_at
-     FROM access_requests WHERE id = ?`,
-    [id],
-  );
-  return rows.length > 0 ? rows[0] : null;
+  return withRetry(async () => {
+    const p = getPool();
+    const [rows] = await p.execute(
+      `SELECT id, patient_address, doctor_address, operation, purpose, status, created_at
+       FROM access_requests WHERE id = ?`,
+      [id],
+    );
+    return rows.length > 0 ? rows[0] : null;
+  });
 }
 
 module.exports = {

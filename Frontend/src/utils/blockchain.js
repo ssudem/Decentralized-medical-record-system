@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import contractABI from "../contractABI.json";
 
-const CONTRACT_ADDRESS = "0x68B52e168a307991abe5F743CC4F5A050C3AD6dA";
+const CONTRACT_ADDRESS = "0xca422A3f305725905E4c9Df02088028d33F20e80";
 
 /**
  * Get a BrowserProvider (MetaMask).
@@ -91,7 +91,7 @@ export async function isHospitalValidOnChain(address) {
   return contract.validHospitals(address);
 }
 
-// cheeck permissions for doctor for a specific operation
+// check permissions for doctor for a specific operation
 export async function checkDoctorPermissionOnChain(
   patientAddress,
   doctorAddress,
@@ -153,4 +153,16 @@ export async function unauthorizeDiagnosticsLabOnChain(labAddress) {
   const contract = await getWriteContract();
   const tx = await contract.unauthorizeDiagnosticsLab(labAddress);
   return tx.wait();
+}
+
+// get the hospital address associated with a doctor
+export async function getDoctorHospital(doctorAddress) {
+  const c = await getReadContract();
+  return await c.doctorToHospital(doctorAddress);
+}
+
+//get the hospital address associated with a diagnostics lab
+export async function getDiagnosticsLabHospital(labAddress) {
+  const c = await getReadContract();
+  return await c.diagnosticsLabToHospital(labAddress);
 }

@@ -106,9 +106,9 @@ export function Input({
 export function Toast({ message, type = "success", onClose }) {
   if (!message) return null;
   const colors = {
-    success: "bg-surface-card border-success/40 text-success",
-    error: "bg-surface-card border-danger/40 text-danger",
-    info: "bg-surface-card border-accent/40 text-accent",
+    success: "bg-success/15 border-success text-success shadow-lg shadow-success/10",
+    error: "bg-danger/15 border-danger text-danger shadow-lg shadow-danger/10",
+    info: "bg-accent/15 border-accent text-accent shadow-lg shadow-accent/10",
   };
 
   const icons = {

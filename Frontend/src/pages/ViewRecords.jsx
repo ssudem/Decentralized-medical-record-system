@@ -12,28 +12,10 @@ import {
 } from "../utils/naclCrypto";
 
 import { checkDoctorPermissionOnChain } from "../utils/blockchain";
-
-// ── Session-level cache (cleared when doctor returns to dashboard) ──
-const CACHE_KEY = "doctor_view_cache";
-
-function loadSessionCache() {
-  try {
-    const raw = sessionStorage.getItem(CACHE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveSessionCache(cacheMap) {
-  try {
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify(cacheMap));
-  } catch {}
-}
-
-function buildCacheId(patientAddr, operation) {
-  return `${patientAddr.toLowerCase()}_${operation}`;
-}
+import {
+  loadDoctorCache,
+  saveDoctorCache,
+} from "../utils/recordCache";
 
 export default function ViewRecords() {
   const { walletAddress, naclPrivateKey } = useAuth();
@@ -44,6 +26,7 @@ export default function ViewRecords() {
   const [viewOp, setViewOp] = useState("");
   const [viewRecords, setViewRecords] = useState([]);
   const [viewLoading, setViewLoading] = useState(false);
+  const [fromCache, setFromCache] = useState(false);
 
   // ── Restore last search results from session cache on mount ──
   useState(() => {
@@ -54,19 +37,76 @@ export default function ViewRecords() {
       if (lastParams) {
         setViewAddr(lastParams.addr);
         setViewOp(lastParams.op);
-        const cache = loadSessionCache();
-        const cacheId = buildCacheId(lastParams.addr, lastParams.op);
-        if (cache[cacheId]) {
-          setViewRecords(cache[cacheId]);
-        }
       }
     } catch {}
   });
+
+  // ── Helper: decrypt an array of encrypted records in-memory ──
+  const decryptAll = async (encRecords) => {
+    const decrypted = [];
+    for (const rec of encRecords) {
+      try {
+        if (!rec.encryptedAESKey || !rec.nonce || !rec.senderPublicKey) {
+          console.warn(`[ViewRecords] Missing key data for CID ${rec.cid}`);
+          continue;
+        }
+
+        const aesKeyBytes = decryptAESKeyWithNaCl(
+          rec.encryptedAESKey,
+          rec.nonce,
+          rec.senderPublicKey,
+          naclPrivateKey,
+        );
+
+        const decryptedRecord = await decryptRecordLocal(
+          rec.encryptedPayload.cipherText,
+          aesKeyBytes,
+          rec.encryptedPayload.iv,
+          rec.encryptedPayload.authTag,
+        );
+
+        // Decrypt PDF if present (diagnostics records)
+        let pdfBase64 = null;
+        if (rec.encryptedPayload.pdfData && rec.encryptedPayload.pdfAuthTag) {
+          try {
+            pdfBase64 = await decryptPdfLocal(
+              rec.encryptedPayload.pdfData,
+              aesKeyBytes,
+              rec.encryptedPayload.iv,
+              rec.encryptedPayload.pdfAuthTag,
+            );
+          } catch (pdfErr) {
+            console.warn(
+              `[ViewRecords] PDF decrypt failed for CID ${rec.cid}:`,
+              pdfErr.message,
+            );
+          }
+        }
+
+        decrypted.push({
+          cid: rec.cid,
+          metadata: rec.metadata,
+          record: decryptedRecord,
+          pdfBase64,
+          timestamp: rec.timestamp,
+          issuedByDoctor: rec.issuedByDoctor,
+          issuedByLab: rec.issuedByLab,
+        });
+      } catch (err) {
+        console.warn(
+          `[ViewRecords] Failed to decrypt CID ${rec.cid}:`,
+          err.message,
+        );
+      }
+    }
+    return decrypted;
+  };
 
   /* ── View Patient Records (Doctor flow) ── */
   const handleView = async (e) => {
     e.preventDefault();
     setViewRecords([]);
+    setFromCache(false);
 
     if (!naclPrivateKey) {
       setToast({
@@ -91,6 +131,7 @@ export default function ViewRecords() {
           message: "Access denied: no active permission or permission expired",
           type: "error",
         });
+        setViewLoading(false);
         return;
       }
     } catch (permErr) {
@@ -98,22 +139,25 @@ export default function ViewRecords() {
         message: "Access denied: failed to verify on-chain permission",
         type: "error",
       });
+      setViewLoading(false);
       return;
     }
-    finally {
-      setViewLoading(false);
-    }
 
-    // ── 0.1 Check session cache first ──
-    const cacheId = buildCacheId(viewAddr, viewOp);
-    const cache = loadSessionCache();
-    if (cache[cacheId]) {
-      setViewRecords(cache[cacheId]);
+    // ── Check encrypted cache first ──
+    const cached = loadDoctorCache(walletAddress, viewAddr, viewOp);
+    if (cached && cached.length > 0) {
+      setFromCache(true);
+      setToast({ message: "⚡ Decrypting cached records…", type: "info" });
+      const dec = await decryptAll(cached);
+      setViewRecords(dec);
+      sessionStorage.setItem(
+        "doctor_view_last_params",
+        JSON.stringify({ addr: viewAddr, op: viewOp }),
+      );
       setToast({
-        message: `⚡ Loaded ${cache[cacheId].length} record(s) from cache`,
+        message: `⚡ ${dec.length} record(s) loaded from cache`,
         type: "success",
       });
-      
       setViewLoading(false);
       return;
     }
@@ -136,76 +180,22 @@ export default function ViewRecords() {
         return;
       }
 
-      // 2. Decrypt each record client-side using NaCl private key
-      const decryptedRecords = [];
+      // Cache the encrypted records (never decrypted data)
+      saveDoctorCache(walletAddress, viewAddr, viewOp, data.records);
 
-      for (const rec of data.records) {
-        try {
-          if (!rec.encryptedAESKey || !rec.nonce || !rec.senderPublicKey) {
-            console.warn(`[ViewRecords] Missing key data for CID ${rec.cid}`);
-            continue;
-          }
-
-          // NaCl decrypt the AES key
-          const aesKeyBytes = decryptAESKeyWithNaCl(
-            rec.encryptedAESKey,
-            rec.nonce,
-            rec.senderPublicKey,
-            naclPrivateKey,
-          );
-
-          // Decrypt the record
-          const decryptedRecord = await decryptRecordLocal(
-            rec.encryptedPayload.cipherText,
-            aesKeyBytes,
-            rec.encryptedPayload.iv,
-            rec.encryptedPayload.authTag,
-          );
-
-          // Decrypt PDF if present (diagnostics records)
-          let pdfBase64 = null;
-          if (rec.encryptedPayload.pdfData && rec.encryptedPayload.pdfAuthTag) {
-            try {
-              pdfBase64 = await decryptPdfLocal(
-                rec.encryptedPayload.pdfData,
-                aesKeyBytes,
-                rec.encryptedPayload.iv,
-                rec.encryptedPayload.pdfAuthTag,
-              );
-            } catch (pdfErr) {
-              console.warn(
-                `[ViewRecords] PDF decrypt failed for CID ${rec.cid}:`,
-                pdfErr.message,
-              );
-            }
-          }
-
-          decryptedRecords.push({
-            cid: rec.cid,
-            metadata: rec.metadata,
-            record: decryptedRecord,
-            pdfBase64,
-            timestamp: rec.timestamp,
-            issuedByDoctor: rec.issuedByDoctor,
-          });
-        } catch (err) {
-          console.warn(
-            `[ViewRecords] Failed to decrypt CID ${rec.cid}:`,
-            err.message,
-          );
-        }
-      }
+      // 2. Decrypt each record client-side
+      const decryptedRecords = await decryptAll(data.records);
 
       setViewRecords(decryptedRecords);
       if (decryptedRecords.length > 0) {
-        // Save to session cache
-        cache[cacheId] = decryptedRecords;
-        saveSessionCache(cache);
         sessionStorage.setItem(
           "doctor_view_last_params",
           JSON.stringify({ addr: viewAddr, op: viewOp }),
         );
-        setToast({ message: "Access granted!", type: "success" });
+        setToast({
+          message: `${decryptedRecords.length} record(s) decrypted — encrypted data cached`,
+          type: "success",
+        });
       } else {
         setToast({
           message:
@@ -283,6 +273,7 @@ export default function ViewRecords() {
               variant="secondary"
               loading={viewLoading}
               className="w-full"
+              onClick={() => setToast(false)}
             >
               <Search className="w-4 h-4" /> Search Records
             </Button>
@@ -321,6 +312,41 @@ export default function ViewRecords() {
                   <strong>CID:</strong>{" "}
                   <span className="font-mono text-xs break-all">{rec.cid}</span>
                 </p>
+
+                {/* ── Issued By ── */}
+                {rec.issuedByDoctor && rec.issuedByDoctor !== "0x0000000000000000000000000000000000000000" && (
+                  <p className="text-sm text-text-secondary mb-1">
+                    <strong>🩺 Issued by Doctor:</strong>{" "}
+                    <span className="font-mono text-xs">{rec.issuedByDoctor.slice(0, 6)}…{rec.issuedByDoctor.slice(-4)}</span>
+                  </p>
+                )}
+                {rec.issuedByLab && rec.issuedByLab !== "0x0000000000000000000000000000000000000000" && (
+                  <p className="text-sm text-text-secondary mb-1">
+                    <strong>🔬 Issued by Lab:</strong>{" "}
+                    <span className="font-mono text-xs">{rec.issuedByLab.slice(0, 6)}…{rec.issuedByLab.slice(-4)}</span>
+                  </p>
+                )}
+                {/* Fallback: check metadata */}
+                {(!rec.issuedByDoctor || rec.issuedByDoctor === "0x0000000000000000000000000000000000000000") &&
+                 (!rec.issuedByLab || rec.issuedByLab === "0x0000000000000000000000000000000000000000") && (
+                  <>
+                    {(rec.metadata?.doctorAddress || rec.record?.doctorAddress) && (
+                      <p className="text-sm text-text-secondary mb-1">
+                        <strong>🩺 Issued by Doctor:</strong>{" "}
+                        <span className="font-mono text-xs">
+                          {(rec.metadata?.doctorAddress || rec.record?.doctorAddress).slice(0, 6)}…{(rec.metadata?.doctorAddress || rec.record?.doctorAddress).slice(-4)}
+                        </span>
+                      </p>
+                    )}
+                    {rec.metadata?.labAddress && (
+                      <p className="text-sm text-text-secondary mb-1">
+                        <strong>🔬 Issued by Lab:</strong>{" "}
+                        <span className="font-mono text-xs">{rec.metadata.labAddress.slice(0, 6)}…{rec.metadata.labAddress.slice(-4)}</span>
+                      </p>
+                    )}
+                  </>
+                )}
+
                 {rec.metadata?.tags?.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {rec.metadata.tags.map((t) => (

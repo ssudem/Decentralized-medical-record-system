@@ -52,7 +52,7 @@ input:-webkit-autofill:active {
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
   --color-text-muted: #94a3b8;
-  --color-border: #cbd5e1;
+  --color-border: #000000;
   --color-primary: #0d9488;
   --color-primary-light: #14b8a6;
   --color-primary-dark: #0f766e;
@@ -66,14 +66,14 @@ input:-webkit-autofill:active {
 :root.light .card-elevated,
 :root.light [class*="bg-surface-card"] {
   box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
-  border: 2px solid var(--color-primary-light);
+  border: 2px solid var(--color-border);
 }
 
 /* ─── Light-mode toast adjustments for visibility ─── */
 :root.light .toast-portal {
-  --toast-bg-success: rgba(22, 163, 74, 0.12);
-  --toast-bg-error: rgba(220, 38, 38, 0.12);
-  --toast-bg-info: rgba(8, 145, 178, 0.12);
+  --toast-bg-success: #16a34a;
+  --toast-bg-error: #dc2626;
+  --toast-bg-info: #0891b2;
 }
 
 /* ─── Light-mode scrollbar ─── */

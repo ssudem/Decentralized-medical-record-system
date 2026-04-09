@@ -1,70 +1,8 @@
 [
   {
     "inputs": [],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "patient",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "doctor",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "operation",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "purpose",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "expiresAt",
-        "type": "uint256"
-      }
-    ],
-    "name": "AccessGranted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "patient",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "doctor",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "operation",
-        "type": "string"
-      }
-    ],
-    "name": "AccessRevoked",
-    "type": "event"
+    "name": "AccessDenied",
+    "type": "error"
   },
   {
     "inputs": [
@@ -78,6 +16,11 @@
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "AlreadyLinked",
+    "type": "error"
   },
   {
     "inputs": [
@@ -106,6 +49,83 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "InvalidDuration",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotRegistered",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "Unauthorized",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "patient",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "doctor",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "operation",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "purpose",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "expiresAt",
+        "type": "uint256"
+      }
+    ],
+    "name": "AccessGranted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "patient",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "doctor",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "operation",
+        "type": "bytes32"
+      }
+    ],
+    "name": "AccessRevoked",
+    "type": "event"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -121,16 +141,16 @@
         "type": "address"
       },
       {
-        "indexed": false,
-        "internalType": "string",
+        "indexed": true,
+        "internalType": "bytes32",
         "name": "operation",
-        "type": "string"
+        "type": "bytes32"
       },
       {
         "indexed": false,
-        "internalType": "string",
+        "internalType": "bytes32",
         "name": "resultHash",
-        "type": "string"
+        "type": "bytes32"
       }
     ],
     "name": "ComputationLogged",
@@ -209,10 +229,10 @@
         "type": "address"
       },
       {
-        "indexed": false,
-        "internalType": "string",
+        "indexed": true,
+        "internalType": "bytes32",
         "name": "operation",
-        "type": "string"
+        "type": "bytes32"
       },
       {
         "indexed": false,
@@ -242,52 +262,6 @@
     ],
     "name": "DoctorUnauthorized",
     "type": "event"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_patient",
-        "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "_operation",
-        "type": "string"
-      }
-    ],
-    "name": "getPatientRecords",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "string",
-            "name": "ipfsHash",
-            "type": "string"
-          },
-          {
-            "internalType": "uint256",
-            "name": "timestamp",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "issuedByDoctor",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "issuedByLab",
-            "type": "address"
-          }
-        ],
-        "internalType": "struct BaseStorage.Record[]",
-        "name": "",
-        "type": "tuple[]"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
   },
   {
     "inputs": [
@@ -344,6 +318,24 @@
     "type": "event"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_patient",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_operation",
+        "type": "string"
+      }
+    ],
+    "name": "logDoctorAccess",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -360,9 +352,9 @@
       },
       {
         "indexed": false,
-        "internalType": "string",
+        "internalType": "bytes32",
         "name": "ipfsHash",
-        "type": "string"
+        "type": "bytes32"
       }
     ],
     "name": "RecordUploaded",
@@ -465,17 +457,17 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "_patient",
         "type": "address"
       },
       {
         "internalType": "address",
-        "name": "",
+        "name": "_doctor",
         "type": "address"
       },
       {
         "internalType": "string",
-        "name": "",
+        "name": "_operation",
         "type": "string"
       }
     ],
@@ -587,21 +579,22 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "myRecords",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_patient",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_operation",
+        "type": "string"
+      }
+    ],
+    "name": "getPatientRecords",
     "outputs": [
       {
         "components": [
-          {
-            "internalType": "string",
-            "name": "ipfsHash",
-            "type": "string"
-          },
-          {
-            "internalType": "uint256",
-            "name": "timestamp",
-            "type": "uint256"
-          },
           {
             "internalType": "address",
             "name": "issuedByDoctor",
@@ -611,6 +604,51 @@
             "internalType": "address",
             "name": "issuedByLab",
             "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "timestamp",
+            "type": "uint64"
+          },
+          {
+            "internalType": "string",
+            "name": "ipfsHash",
+            "type": "string"
+          }
+        ],
+        "internalType": "struct BaseStorage.Record[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "myRecords",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "issuedByDoctor",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "issuedByLab",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "timestamp",
+            "type": "uint64"
+          },
+          {
+            "internalType": "string",
+            "name": "ipfsHash",
+            "type": "string"
           }
         ],
         "internalType": "struct BaseStorage.Record[]",

@@ -133,7 +133,13 @@ export default function RevokeAccess() {
             </select>
           </div>
           <div className="md:col-span-2">
-            <Button type="submit" variant="danger" loading={revokeLoading}>
+            <Button
+              type="submit"
+              variant="danger"
+              loading={revokeLoading}
+              onClick={() => setToast(false)}
+              className="w-full"
+            >
               <ShieldOff className="w-4 h-4" /> Revoke Access
             </Button>
           </div>

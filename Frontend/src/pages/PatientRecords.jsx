@@ -9,33 +9,11 @@ import {
   decryptRecordLocal,
   decryptPdfLocal,
 } from "../utils/naclCrypto";
-
-// ─── Cache helpers (sessionStorage, keyed by wallet address) ───
-
-function getCacheKey(address) {
-  return `medirecord_cache_${address?.toLowerCase()}`;
-}
-
-function loadCache(address) {
-  try {
-    const raw = sessionStorage.getItem(getCacheKey(address));
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveCache(address, cacheMap) {
-  try {
-    sessionStorage.setItem(getCacheKey(address), JSON.stringify(cacheMap));
-  } catch {
-    // sessionStorage quota exceeded — silently skip caching
-  }
-}
-
-function clearCache(address) {
-  sessionStorage.removeItem(getCacheKey(address));
-}
+import {
+  loadPatientCache,
+  savePatientCache,
+  clearPatientCache,
+} from "../utils/recordCache";
 
 // ─────────────────────────────────────────────
 
@@ -48,20 +26,97 @@ export default function PatientRecords() {
   const [toast, setToast] = useState(null);
   const [fromCache, setFromCache] = useState(false);
 
-  // ── On mount: load from cache first, then fetch any new records ──
-  useEffect(() => {
-    if (!walletAddress) return;
+  // ── Helper: decrypt an array of encrypted records in-memory ──
+  const decryptAll = async (encRecords) => {
+    const decrypted = [];
+    for (const rec of encRecords) {
+      try {
+        let aesKeyBytes;
+        if (
+          naclPrivateKey &&
+          rec.encryptedAESKey &&
+          rec.nonce &&
+          rec.senderPublicKey
+        ) {
+          aesKeyBytes = decryptAESKeyWithNaCl(
+            rec.encryptedAESKey,
+            rec.nonce,
+            rec.senderPublicKey,
+            naclPrivateKey,
+          );
+        }
+        if (!aesKeyBytes) {
+          console.warn(`[PatientRecords] No key for CID ${rec.cid}`);
+          continue;
+        }
 
-    const cached = loadCache(walletAddress);
-    if (Object.keys(cached).length > 0) {
-      setRecords(Object.values(cached));
+        const decryptedRecord = await decryptRecordLocal(
+          rec.encryptedPayload.cipherText,
+          aesKeyBytes,
+          rec.encryptedPayload.iv,
+          rec.encryptedPayload.authTag,
+        );
+
+        // Decrypt PDF if present (diagnostics records)
+        let pdfBase64 = null;
+        if (rec.encryptedPayload.pdfData && rec.encryptedPayload.pdfAuthTag) {
+          try {
+            pdfBase64 = await decryptPdfLocal(
+              rec.encryptedPayload.pdfData,
+              aesKeyBytes,
+              rec.encryptedPayload.iv,
+              rec.encryptedPayload.pdfAuthTag,
+            );
+          } catch (pdfErr) {
+            console.warn(
+              `[PatientRecords] PDF decrypt failed for CID ${rec.cid}:`,
+              pdfErr.message,
+            );
+          }
+        }
+
+        decrypted.push({
+          cid: rec.cid,
+          metadata: rec.metadata,
+          record: decryptedRecord,
+          pdfBase64,
+          timestamp: rec.timestamp,
+          issuedByDoctor: rec.issuedByDoctor,
+          issuedByLab: rec.issuedByLab,
+        });
+      } catch (err) {
+        console.warn(
+          `[PatientRecords] Failed to decrypt CID ${rec.cid}:`,
+          err.message,
+        );
+      }
+    }
+    return decrypted;
+  };
+
+  // ── On mount: try cached encrypted records first ──
+  useEffect(() => {
+    if (!walletAddress || !naclPrivateKey) return;
+
+    const cached = loadPatientCache(walletAddress);
+    if (cached && cached.length > 0) {
       setFromCache(true);
+      setLoading(true);
+      setToast({ message: "⚡ Decrypting cached records…", type: "info" });
+      decryptAll(cached).then((dec) => {
+        setRecords(dec);
+        setLoading(false);
+        setToast({
+          message: `⚡ ${dec.length} record(s) loaded from cache`,
+          type: "success",
+        });
+      });
     } else {
       fetchRecords();
     }
   }, [walletAddress]);
 
-  const fetchRecords = async (forceRefresh = false) => {
+  const fetchRecords = async () => {
     if (!walletAddress) {
       setToast({ message: "Connect your wallet first", type: "error" });
       return;
@@ -76,9 +131,6 @@ export default function PatientRecords() {
 
     setLoading(true);
     setFromCache(false);
-
-    // Load existing cache so we can skip already-decrypted records
-    const existingCache = loadCache(walletAddress);
 
     try {
       setToast({
@@ -97,95 +149,16 @@ export default function PatientRecords() {
         return;
       }
 
-      const updatedCache = { ...existingCache };
-      const decryptedRecords = [];
+      // Cache the encrypted records (never decrypted data)
+      savePatientCache(walletAddress, data.records);
 
-      for (const rec of data.records) {
-        // ── Cache hit: skip decryption ──
-        if (updatedCache[rec.cid]) {
-          decryptedRecords.push(updatedCache[rec.cid]);
-          continue;
-        }
-
-        // ── Cache miss: decrypt and store ──
-        try {
-          let aesKeyBytes;
-
-          if (
-            naclPrivateKey &&
-            rec.encryptedAESKey &&
-            rec.nonce &&
-            rec.senderPublicKey
-          ) {
-            aesKeyBytes = decryptAESKeyWithNaCl(
-              rec.encryptedAESKey,
-              rec.nonce,
-              rec.senderPublicKey,
-              naclPrivateKey,
-            );
-          }
-
-          if (!aesKeyBytes) {
-            console.warn(`[PatientRecords] No key for CID ${rec.cid}`);
-            continue;
-          }
-
-          const decryptedRecord = await decryptRecordLocal(
-            rec.encryptedPayload.cipherText,
-            aesKeyBytes,
-            rec.encryptedPayload.iv,
-            rec.encryptedPayload.authTag,
-          );
-
-          // Decrypt PDF if present (diagnostics records)
-          let pdfBase64 = null;
-          if (rec.encryptedPayload.pdfData && rec.encryptedPayload.pdfAuthTag) {
-            try {
-              pdfBase64 = await decryptPdfLocal(
-                rec.encryptedPayload.pdfData,
-                aesKeyBytes,
-                rec.encryptedPayload.iv,
-                rec.encryptedPayload.pdfAuthTag,
-              );
-            } catch (pdfErr) {
-              console.warn(
-                `[PatientRecords] PDF decrypt failed for CID ${rec.cid}:`,
-                pdfErr.message,
-              );
-            }
-          }
-
-          const entry = {
-            cid: rec.cid,
-            metadata: rec.metadata,
-            record: decryptedRecord,
-            pdfBase64, // will be null for non-diagnostics records
-            timestamp: rec.timestamp,
-            issuedByDoctor: rec.issuedByDoctor,
-          };
-
-          updatedCache[rec.cid] = entry;
-          decryptedRecords.push(entry);
-        } catch (err) {
-          console.warn(
-            `[PatientRecords] Failed to decrypt CID ${rec.cid}:`,
-            err.message,
-          );
-        }
-      }
-
-      // Persist updated cache
-      saveCache(walletAddress, updatedCache);
+      // Decrypt in-memory
+      const decryptedRecords = await decryptAll(data.records);
       setRecords(decryptedRecords);
 
       if (decryptedRecords.length > 0) {
-        const newCount =
-          decryptedRecords.length - Object.keys(existingCache).length;
         setToast({
-          message:
-            newCount > 0
-              ? `Loaded ${decryptedRecords.length} record(s) (${newCount} newly decrypted)`
-              : `All ${decryptedRecords.length} record(s) loaded from cache`,
+          message: `Loaded ${decryptedRecords.length} record(s) — encrypted data cached`,
           type: "success",
         });
       } else {
@@ -203,11 +176,11 @@ export default function PatientRecords() {
   };
 
   const handleClearCache = () => {
-    clearCache(walletAddress);
+    clearPatientCache(walletAddress);
     setRecords([]);
     setFromCache(false);
     setToast({
-      message: "Cache cleared. Records will be re-decrypted on next load.",
+      message: "Cache cleared. Records will be re-fetched on next load.",
       type: "info",
     });
   };
@@ -311,6 +284,40 @@ export default function PatientRecords() {
                 <p className="text-sm text-text-secondary mb-1">
                   <strong>Blood Group:</strong> {rec.record.bloodGroup}
                 </p>
+              )}
+
+              {/* ── Issued By ── */}
+              {rec.issuedByDoctor && rec.issuedByDoctor !== "0x0000000000000000000000000000000000000000" && (
+                <p className="text-sm text-text-secondary mb-1">
+                  <strong>🩺 Issued by Doctor:</strong>{" "}
+                  <span className="font-mono text-xs">{rec.issuedByDoctor.slice(0, 6)}…{rec.issuedByDoctor.slice(-4)}</span>
+                </p>
+              )}
+              {rec.issuedByLab && rec.issuedByLab !== "0x0000000000000000000000000000000000000000" && (
+                <p className="text-sm text-text-secondary mb-1">
+                  <strong>🔬 Issued by Lab:</strong>{" "}
+                  <span className="font-mono text-xs">{rec.issuedByLab.slice(0, 6)}…{rec.issuedByLab.slice(-4)}</span>
+                </p>
+              )}
+              {/* Fallback: check metadata for doctorAddress/labAddress */}
+              {(!rec.issuedByDoctor || rec.issuedByDoctor === "0x0000000000000000000000000000000000000000") &&
+               (!rec.issuedByLab || rec.issuedByLab === "0x0000000000000000000000000000000000000000") && (
+                <>
+                  {(rec.metadata?.doctorAddress || rec.record?.doctorAddress) && (
+                    <p className="text-sm text-text-secondary mb-1">
+                      <strong>🩺 Issued by Doctor:</strong>{" "}
+                      <span className="font-mono text-xs">
+                        {(rec.metadata?.doctorAddress || rec.record?.doctorAddress).slice(0, 6)}…{(rec.metadata?.doctorAddress || rec.record?.doctorAddress).slice(-4)}
+                      </span>
+                    </p>
+                  )}
+                  {rec.metadata?.labAddress && (
+                    <p className="text-sm text-text-secondary mb-1">
+                      <strong>🔬 Issued by Lab:</strong>{" "}
+                      <span className="font-mono text-xs">{rec.metadata.labAddress.slice(0, 6)}…{rec.metadata.labAddress.slice(-4)}</span>
+                    </p>
+                  )}
+                </>
               )}
 
               <p className="text-xs text-text-muted font-mono break-all mt-1">
