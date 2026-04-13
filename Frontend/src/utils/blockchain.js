@@ -1,7 +1,11 @@
 import { ethers } from "ethers";
 import contractABI from "../contractABI.json";
 
-const CONTRACT_ADDRESS = "0xca422A3f305725905E4c9Df02088028d33F20e80";
+const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
+
+// ─── Role mapping helpers ───
+const ROLE_MAP = { patient: 1, doctor: 2, diagnostics: 3 };
+const ROLE_REVERSE = { 0: "none", 1: "patient", 2: "doctor", 3: "diagnostics" };
 
 /**
  * Get a BrowserProvider (MetaMask).
@@ -35,7 +39,61 @@ export async function getWriteContract() {
   return new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
 }
 
-/* ─── Smart-contract helper wrappers ─── */
+// ─────────────────────────────────────────────
+//  User Identity (replaces MySQL users table)
+// ─────────────────────────────────────────────
+
+/**
+ * Register a new user on-chain. MetaMask signs the tx.
+ * @param {string} role       - 'patient', 'doctor', or 'diagnostics'
+ * @param {string} naclPubKey - Base64 NaCl public key
+ * @param {string} encPrivKey - Hex encrypted NaCl private key
+ * @param {string} metadata   - "iv|authTag" packed string
+ */
+export async function registerUserOnChain(role, naclPubKey, encPrivKey, metadata) {
+  const roleId = ROLE_MAP[role];
+  if (!roleId) throw new Error(`Invalid role: ${role}`);
+  const contract = await getWriteContract();
+  const tx = await contract.registerUser(roleId, naclPubKey, encPrivKey, metadata);
+  return tx.wait();
+}
+
+/**
+ * Get full user profile from the blockchain.
+ * @param {string} address - Ethereum address
+ * @returns {{ role, naclPublicKey, encryptedPrivateKey, metadata }}
+ */
+export async function getUserOnChain(address) {
+  const contract = await getReadContract();
+  const [roleId, naclPublicKey, encryptedPrivateKey, metadata] =
+    await contract.getUser(address);
+  return {
+    role: ROLE_REVERSE[Number(roleId)] || "none",
+    naclPublicKey,
+    encryptedPrivateKey,
+    metadata, // "iv|authTag"
+  };
+}
+
+/**
+ * Get only the NaCl public key for an address.
+ */
+export async function getUserPublicKeyOnChain(address) {
+  const contract = await getReadContract();
+  return await contract.getUserPublicKey(address);
+}
+
+/**
+ * Check if an address is registered on-chain.
+ */
+export async function isUserRegisteredOnChain(address) {
+  const contract = await getReadContract();
+  return await contract.isRegistered(address);
+}
+
+// ─────────────────────────────────────────────
+//  Access Control
+// ─────────────────────────────────────────────
 
 /**
  * Patient grants access to a doctor for a specific operation.

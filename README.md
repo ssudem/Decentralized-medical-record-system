@@ -60,19 +60,19 @@ A blockchain-powered, privacy-preserving medical records platform built on **Eth
 │  - Record CIDs    │  │   ├ records   ├ ipfsService      (AES-256-GCM)   │
 │  - Permissions    │  │   ├ access    ├ keyStore                         │
 │  - Trust Chain    │  │   ├ hospitals ├ userStore                        │
-│                   │  │   ├ requests  ├ requestStore                     │
-│                   │  │   └ diagnostics └ keyManager                     │
+│  - Trust Chain    │  │   ├ hospitals ├ requestStore                     │
+│                   │  │   ├ requests  └ keyManager                       │
+│                   │  │   └ diagnostics                                  │
 │                   │  │                                                  │
 └──────────────────-┘  └───────────┬──────────────┬───────────────────────┘
                                    │              │
                                    ▼              ▼
-                          ┌──────────────┐ ┌──────────────┐
-                          │  MySQL/TiDB  │ │  Pinata IPFS │
-                          │  Cloud       │ │  (Encrypted  │
-                          │  - Users     │ │   Records)   │
-                          │  - Keys      │ │              │
-                          │  - Requests  │ │              │
-                          └──────────────┘ └──────────────┘
+                           ┌──────────────┐ ┌──────────────┐
+                           │  MySQL/TiDB  │ │  Pinata IPFS │
+                           │  Cloud       │ │  (Encrypted  │
+                           │  - Keys      │ │   Records)   │
+                           │  - Requests  │ │              │
+                           └──────────────┘ └──────────────┘
 ```
 
 ---
@@ -139,7 +139,7 @@ SuperAdmin (Contract Deployer / Regulatory Body)
 | **Solidity 0.8.19**  | Smart contract (access control, record registry) |
 | **Ethereum Sepolia** | Testnet for deployment                           |
 | **Pinata / IPFS**    | Decentralized encrypted record storage           |
-| **TiDB Cloud**       | Serverless MySQL for key storage and user data   |
+| **TiDB Cloud**       | Serverless MySQL for record key access lists and requests |
 
 ---
 
@@ -163,7 +163,6 @@ MediRecord/
 │   │   ├── ipfsService.js        # Pinata IPFS upload/fetch
 │   │   ├── keyStore.js           # Encrypted AES key storage (MySQL)
 │   │   ├── keyManager.js         # NaCl key management utilities
-│   │   ├── userStore.js          # User CRUD operations (MySQL)
 │   │   └── requestStore.js       # Access request CRUD (MySQL)
 │   ├── utils/
 │   │   └── crypto.js             # AES-256-GCM encryption utilities
@@ -291,21 +290,7 @@ MediRecord/
 
 ## 🗄 Database Schema
 
-The system uses **MySQL (TiDB Cloud)** for off-chain state that cannot be stored on the blockchain for cost/privacy reasons.
-
-### `users`
-
-Stores user accounts with their NaCl keypair (private key encrypted with a user-derived password).
-
-| Column                       | Type         | Description                                           |
-| ---------------------------- | ------------ | ----------------------------------------------------- |
-| `id`                         | INT (PK)     | Auto-increment ID                                     |
-| `email`                      | VARCHAR(255) | User email (unique)                                   |
-| `password_hash`              | VARCHAR(255) | Bcrypt password hash                                  |
-| `role`                       | VARCHAR(20)  | `patient`, `doctor`, or `diagnostics`                 |
-| `nacl_public_key`            | TEXT         | NaCl public key (Base64)                              |
-| `encrypted_nacl_private_key` | TEXT         | AES-encrypted NaCl private key (via wallet signature) |
-| `ethereum_address`           | VARCHAR(42)  | Linked MetaMask wallet address                        |
+The system uses **MySQL (TiDB Cloud)** for off-chain state that cannot be stored on the blockchain for cost/privacy reasons. User identities (registration, roles, encrypted NaCl keys) are stored **entirely on-chain** via the `MedicalRecordSystem` smart contract.
 
 ### `encrypted_keys`
 
@@ -339,10 +324,9 @@ Tracks doctor → patient access request workflow.
 
 | Method | Endpoint               | Caller        | Description                                |
 | ------ | ---------------------- | ------------- | ------------------------------------------ |
-| POST   | `/register`            | Anyone        | Register with wallet + NaCl keypair        |
-| POST   | `/login`               | Anyone        | Wallet-signature-based login (returns JWT) |
-| GET    | `/me`                  | Authenticated | Get current user profile                   |
-| GET    | `/public-key/:address` | Authenticated | Get user's NaCl public key                 |
+| POST   | `/login`               | Anyone        | Timestamp-based wallet signature login (returns JWT) |
+| GET    | `/me`                  | Authenticated | Get current user profile (from blockchain) |
+| GET    | `/public-key/:address` | Authenticated | Get user's NaCl public key (from blockchain) |
 
 ### Records (`/api/records`)
 
@@ -500,8 +484,8 @@ Create a `.env` file in the `Backend/` directory (see `.env.example`):
 ## 📝 Deployment Notes
 
 1. **Smart Contract Redeployment:** Any changes to `MedicalRecordSystem.sol` require redeployment. Update `CONTRACT_ADDRESS` and both ABI files afterward.
-2. **Private Keys:** The `SERVER_PRIVATE_KEY` is used only for on-chain operations (adding hospitals). It is never exposed to API responses or logs.
-3. **NaCl Keypairs:** Each user generates a NaCl keypair locally at registration. The private key is AES-encrypted with a MetaMask signature-derived key and stored in the database.
+2. **Private Keys:** The `SERVER_PRIVATE_KEY` is used only for on-chain backend operations (e.g. adding hospitals). It is never exposed.
+3. **NaCl Keypairs:** Each user generates a NaCl keypair locally at registration. The private key is AES-encrypted with a MetaMask signature-derived key and stored directly on the smart contract (`UserRegistry`).
 4. **Zero-Trust Architecture:** Medical record data is **never** decrypted on the server. The server handles AES encryption during record creation, but delegates all decryption and asymmetric AES key wrapping (NaCl) to the client's browser.
 5. **IPFS Persistence:** Records pinned on Pinata persist as long as the Pinata account is active. Consider implementing CID pinning verification for production.
 

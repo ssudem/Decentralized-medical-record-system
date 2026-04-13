@@ -347,6 +347,61 @@ async function uploadRecordLabOnChain(patientAddress, cid, labPrivateKey) {
   return receipt.hash;
 }
 
+// ─────────────────────────────────────────────
+//  User Identity (replaces MySQL users table)
+// ─────────────────────────────────────────────
+
+/**
+ * Role ID → string mapping (matches Solidity enum).
+ */
+const ROLE_REVERSE = { 0: "none", 1: "patient", 2: "doctor", 3: "diagnostics" };
+
+/**
+ * Fetch a user profile from the blockchain.
+ * @param {string} address - Ethereum address
+ * @returns {Promise<{ role, naclPublicKey, encryptedPrivateKey, iv, authTag, createdAt } | null>}
+ */
+async function getUserFromChain(address) {
+  const c = getContract();
+  const [roleId, naclPublicKey, encryptedPrivateKey, metadata] =
+    await c.getUser(address);
+
+  const role = ROLE_REVERSE[Number(roleId)] || "none";
+  if (role === "none") return null; // Not registered
+
+  // Unpack metadata: "iv|authTag"
+  const [iv, authTag] = metadata.split("|");
+
+  return {
+    role,
+    naclPublicKey,
+    encryptedPrivateKey,
+    iv: iv || "",
+    authTag: authTag || "",
+    ethereum_address: address,
+  };
+}
+
+/**
+ * Get only the NaCl public key for an address.
+ * @param {string} address - Ethereum address
+ * @returns {Promise<string>} Base64 NaCl public key
+ */
+async function getUserPublicKeyFromChain(address) {
+  const c = getContract();
+  return await c.getUserPublicKey(address);
+}
+
+/**
+ * Check if an address is registered on-chain.
+ * @param {string} address - Ethereum address
+ * @returns {Promise<boolean>}
+ */
+async function isUserRegistered(address) {
+  const c = getContract();
+  return await c.isRegistered(address);
+}
+
 module.exports = {
   initBlockchain,
   getContract,
@@ -364,4 +419,9 @@ module.exports = {
   unauthorizeDiagnosticsLabOnChain,
   getDiagnosticsLabHospital,
   uploadRecordLabOnChain,
+  // User identity (replaces userStore.js)
+  getUserFromChain,
+  getUserPublicKeyFromChain,
+  isUserRegistered,
 };
+

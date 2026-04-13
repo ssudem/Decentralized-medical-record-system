@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import API from '../api/axios';
 import { Button, Card, Toast } from '../components/UI';
 import { UserPlus, Wallet } from 'lucide-react';
 import {
@@ -10,6 +9,7 @@ import {
   generateNaClKeyPair,
   encryptNaClPrivateKey,
 } from '../utils/naclCrypto';
+import { registerUserOnChain, isUserRegisteredOnChain } from '../utils/blockchain';
 
 export default function Register() {
   const { connectWallet, walletAddress } = useAuth();
@@ -27,46 +27,39 @@ export default function Register() {
       const addr = walletAddress || (await connectWallet());
       if (!addr) throw new Error('Wallet not connected');
 
-      // 2. Request nonce from backend
-      setToast({ message: 'Requesting registration challenge…', type: 'info' });
-      const { data: nonceData } = await API.get(`/auth/nonce/${addr}`);
-      const nonce = nonceData.nonce;
-      const nonceMsg = nonceData.message;
+      // 2. Check if already registered on-chain
+      setToast({ message: 'Checking registration status…', type: 'info' });
+      const alreadyRegistered = await isUserRegisteredOnChain(addr);
+      if (alreadyRegistered) {
+        setToast({ message: 'This wallet is already registered!', type: 'error' });
+        setLoading(false);
+        return;
+      }
 
-      // 3. Sign the nonce message with MetaMask (1st popup — for auth verification)
-      setToast({ message: 'Sign the registration message in MetaMask…', type: 'info' });
-      const authSignature = await window.ethereum.request({
-        method: 'personal_sign',
-        params: [nonceMsg, addr],
-      });
-
-      // 4. Generate NaCl keypair
+      // 3. Generate NaCl keypair
       setToast({ message: 'Generating encryption keys…', type: 'info' });
       const { publicKey: naclPub, secretKey: naclSec } = generateNaClKeyPair();
 
-      // 5. Sign the fixed message for NaCl key encryption (2nd popup — for key derivation)
+      // 4. Sign the fixed message for NaCl key encryption (MetaMask popup)
       setToast({ message: 'Sign the key protection message in MetaMask…', type: 'info' });
       const keySignature = await signFixedMessage(addr);
       const derivedKey = await deriveKeyFromSignature(keySignature);
 
-      // 6. Encrypt NaCl private key with derived key
+      // 5. Encrypt NaCl private key with derived key
       const { encryptedKey, iv, authTag } = await encryptNaClPrivateKey(naclSec, derivedKey);
 
-      // 7. Register with backend
-      const { data } = await API.post('/auth/register', {
-        ethereumAddress: addr,
-        role,
-        signature: authSignature,
-        naclPublicKey: naclPub,
-        encryptedNaclPrivateKey: encryptedKey,
-        naclKeyIv: iv,
-        naclKeyAuthTag: authTag,
-      });
+      // 6. Pack IV + AuthTag into metadata string (pipe-separated)
+      const metadata = `${iv}|${authTag}`;
 
-      setToast({ message: data.message || 'Registered successfully!', type: 'success' });
+      // 7. Register directly on blockchain (MetaMask popup — gas tx)
+      setToast({ message: 'Confirm the registration transaction in MetaMask…', type: 'info' });
+      await registerUserOnChain(role, naclPub, encryptedKey, metadata);
+
+      setToast({ message: 'Registered successfully on the blockchain!', type: 'success' });
       setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
-      setToast({ message: err.response?.data?.error || err.message || 'Registration failed', type: 'error' });
+      const msg = err?.reason || err?.message || 'Registration failed';
+      setToast({ message: msg, type: 'error' });
     } finally {
       setLoading(false);
     }

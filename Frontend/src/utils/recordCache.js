@@ -12,7 +12,7 @@
  * Entries include a timestamp and are invalidated after `maxAgeMs` (default 5 min).
  */
 
-const MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
+const MAX_AGE_MS = 10 * 60 * 1000; // 10 minutes
 
 // ── Patient cache ──
 
@@ -81,6 +81,10 @@ export function saveDoctorCache(doctorAddr, patientAddr, operation, encryptedRec
   } catch {
     // quota exceeded — silently skip
   }
+}
+
+export function clearDoctorCache(doctorAddr, patientAddr, operation) {
+  sessionStorage.removeItem(doctorCacheKey(doctorAddr, patientAddr, operation));
 }
 
 export function clearAllDoctorCaches() {

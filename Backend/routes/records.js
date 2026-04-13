@@ -216,66 +216,41 @@ router.post("/view", async (req, res) => {
       return res.json({ records: [], message: "No records found" });
     }
 
-    // ── 3. Filter by metadata tags (via IPFS metadata) ──
-    const opTags = OPERATION_TAG_MAP[operation];
-
-    // Build list of records to return
-    const relevantRecords = [];
-    for (const rec of allRecords) {
-      if (isPatient && operation === "*") {
-        // Patients see all their records when requesting '*'
-        relevantRecords.push({
-          cid: rec.ipfsHash,
-          issuedByDoctor: rec.issuedByDoctor,
-          issuedByLab: rec.issuedByLab,
-          timestamp: rec.timestamp.toString(),
-        });
-      } else {
-        // Doctors / Patient sharing: filter by operation tags via IPFS metadata
-        try {
-          const metadata = await fetchMetadataFromIPFS(rec.ipfsHash);
-          if (isRecordRelevant(operation, metadata.tags || [])) {
-            relevantRecords.push({
-              cid: rec.ipfsHash,
-              metadata,
-              issuedByDoctor: rec.issuedByDoctor,
-              issuedByLab: rec.issuedByLab,
-              timestamp: rec.timestamp.toString(),
-            });
-          }
-        } catch (fetchErr) {
-          console.warn(
-            `[View] Failed to fetch metadata for CID ${rec.ipfsHash}`,
-          );
-        }
-      }
-    }
-
-    // ── 4. Fetch encrypted data + keys (NO decryption) ──
-    const recordPromises = relevantRecords.map(async (rel) => {
+    // ── 3 & 4. Concurrently filter and fetch encrypted data + keys ──
+    const recordPromises = allRecords.map(async (rec) => {
       try {
-        // Get the user's encrypted AES key from DB
-        const keyData = await getEncryptedKey(rel.cid, userAddress);
+        const cid = rec.ipfsHash;
+
+        // 1. Fetch DB key - if no key, the user has no access. No need to hit IPFS.
+        const keyData = await getEncryptedKey(cid, userAddress);
         if (!keyData) {
           return null;
         }
 
-        // Fetch the full IPFS payload (encrypted)
-        const ipfsData = await fetchFromIPFS(rel.cid);
+        // 2. Fetch full IPFS payload once
+        // (fetchMetadataFromIPFS fetches the entire payload under the hood anyway)
+        const ipfsData = await fetchFromIPFS(cid);
+        const metadata = ipfsData.metadata;
+
+        // 3. Filter by metadata tags if not self_view
+        const isSelfView = isPatient && operation === "self_view";
+        if (!isSelfView && !isRecordRelevant(operation, metadata.tags || [])) {
+          return null; // Does not match tags
+        }
 
         return {
-          cid: rel.cid,
-          metadata: rel.metadata || ipfsData.metadata,
+          cid: cid,
+          metadata: metadata,
           encryptedPayload: ipfsData.encryptedPayload,
           encryptedAESKey: keyData.encrypted_aes_key,
           nonce: keyData.nonce,
           senderPublicKey: keyData.sender_address, // NaCl public key of sender
-          issuedByDoctor: rel.issuedByDoctor,
-          issuedByLab: rel.issuedByLab || null,
-          timestamp: rel.timestamp,
+          issuedByDoctor: rec.issuedByDoctor,
+          issuedByLab: rec.issuedByLab || null,
+          timestamp: rec.timestamp.toString(),
         };
       } catch (err) {
-        console.warn(`[View] Failed to fetch CID ${rel.cid}`);
+        console.warn(`[View] Failed to process CID ${rec.ipfsHash}: ${err.message}`);
         return null;
       }
     });
@@ -287,7 +262,7 @@ router.post("/view", async (req, res) => {
 
     res.json({
       totalRecords: allRecords.length,
-      filteredCount: relevantRecords.length,
+      filteredCount: records.length,
       returnedCount: records.length,
       operation,
       records,

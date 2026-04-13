@@ -1,20 +1,9 @@
 -- ══════════════════════════════════════════════
 --  MediRecord Database Schema (NaCl / TweetNaCl)
+--  NOTE: The `users` table has been REMOVED.
+--  User identity is now stored on the Smart Contract
+--  (see MedicalRecordSystem.sol → registerUser / getUser).
 -- ══════════════════════════════════════════════
-
--- ─── users ──────────────────────────────────
-CREATE TABLE IF NOT EXISTS users (
-  id                         INT AUTO_INCREMENT PRIMARY KEY,
-  email                      VARCHAR(255) NOT NULL UNIQUE,
-  password_hash              VARCHAR(255) NOT NULL,
-  role                       VARCHAR(20)  NOT NULL DEFAULT 'patient',
-  nacl_public_key            TEXT         DEFAULT NULL,
-  encrypted_nacl_private_key TEXT         DEFAULT NULL,
-  nacl_key_iv                VARCHAR(64)  DEFAULT NULL,
-  nacl_key_auth_tag          VARCHAR(64)  DEFAULT NULL,
-  ethereum_address           VARCHAR(42)  DEFAULT NULL,
-  created_at                 TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
-);
 
 -- ─── encrypted_keys ─────────────────────────
 CREATE TABLE IF NOT EXISTS encrypted_keys (

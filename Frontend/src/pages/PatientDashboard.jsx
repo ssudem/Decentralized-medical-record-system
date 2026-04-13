@@ -76,7 +76,7 @@ export default function PatientDashboard() {
       // 2. Grant on-chain access (MetaMask popup)
       const durationSeconds = durations[request.id]
         ? parseInt(durations[request.id])
-        : 86400;
+        : 3600;
       setToast({
         message: "Confirm the transaction in MetaMask…",
         type: "info",
@@ -233,7 +233,7 @@ export default function PatientDashboard() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
             Patient Dashboard
           </h1>
           <p className="text-text-secondary text-sm mt-1">

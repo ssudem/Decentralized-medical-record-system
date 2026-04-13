@@ -5,6 +5,18 @@ contract BaseStorage {
 
     address public immutable superAdmin;
 
+    // ─── User Identity (replaces MySQL users table) ───
+    enum UserRole { None, Patient, Doctor, Diagnostics }
+
+    struct UserProfile {
+        UserRole role;
+        string naclPublicKey;       // Base64 NaCl public key
+        string encryptedPrivateKey; // Hex-encoded AES-GCM encrypted NaCl private key
+        string metadata;            // Packed: "iv|authTag" (hex-encoded, pipe-separated)
+    }
+
+    mapping(address => UserProfile) internal _users;
+
     struct Record {
         address issuedByDoctor;
         address issuedByLab;
@@ -26,6 +38,7 @@ contract BaseStorage {
     error Unauthorized();
     error NotRegistered();
     error AlreadyLinked();
+    error AlreadyRegistered();
     error InvalidDuration();
     error AccessDenied();
 
@@ -46,6 +59,8 @@ contract BaseStorage {
 
     event DoctorRecordAccess(address indexed doctor, address indexed patient, bytes32 indexed operation, uint256 timestamp);
     event ComputationLogged(address indexed doctor, address indexed patient, bytes32 indexed operation, bytes32 resultHash);
+
+    event UserRegistered(address indexed userAddress, UserRole role, uint64 registeredAt);
 
     constructor() {
         superAdmin = msg.sender;

@@ -28,8 +28,7 @@ export default function PatientRecords() {
 
   // ── Helper: decrypt an array of encrypted records in-memory ──
   const decryptAll = async (encRecords) => {
-    const decrypted = [];
-    for (const rec of encRecords) {
+    const decryptPromises = encRecords.map(async (rec) => {
       try {
         let aesKeyBytes;
         if (
@@ -47,7 +46,7 @@ export default function PatientRecords() {
         }
         if (!aesKeyBytes) {
           console.warn(`[PatientRecords] No key for CID ${rec.cid}`);
-          continue;
+          return null;
         }
 
         const decryptedRecord = await decryptRecordLocal(
@@ -75,7 +74,7 @@ export default function PatientRecords() {
           }
         }
 
-        decrypted.push({
+        return {
           cid: rec.cid,
           metadata: rec.metadata,
           record: decryptedRecord,
@@ -83,15 +82,18 @@ export default function PatientRecords() {
           timestamp: rec.timestamp,
           issuedByDoctor: rec.issuedByDoctor,
           issuedByLab: rec.issuedByLab,
-        });
+        };
       } catch (err) {
         console.warn(
           `[PatientRecords] Failed to decrypt CID ${rec.cid}:`,
           err.message,
         );
+        return null;
       }
-    }
-    return decrypted;
+    });
+
+    const results = await Promise.all(decryptPromises);
+    return results.filter((r) => r !== null);
   };
 
   // ── On mount: try cached encrypted records first ──

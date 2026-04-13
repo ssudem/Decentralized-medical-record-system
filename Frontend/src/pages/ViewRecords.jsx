@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import API from "../api/axios";
@@ -15,6 +15,7 @@ import { checkDoctorPermissionOnChain } from "../utils/blockchain";
 import {
   loadDoctorCache,
   saveDoctorCache,
+  clearDoctorCache,
 } from "../utils/recordCache";
 
 export default function ViewRecords() {
@@ -29,26 +30,83 @@ export default function ViewRecords() {
   const [fromCache, setFromCache] = useState(false);
 
   // ── Restore last search results from session cache on mount ──
-  useState(() => {
-    try {
-      const lastParams = JSON.parse(
-        sessionStorage.getItem("doctor_view_last_params") || "null",
-      );
-      if (lastParams) {
-        setViewAddr(lastParams.addr);
-        setViewOp(lastParams.op);
+  useEffect(() => {
+    if (!walletAddress || !naclPrivateKey) return;
+
+    const autoLoad = async () => {
+      try {
+        const lastParams = JSON.parse(
+          sessionStorage.getItem("doctor_view_last_params") || "null"
+        );
+        if (lastParams && lastParams.addr && lastParams.op) {
+          setViewAddr(lastParams.addr);
+          setViewOp(lastParams.op);
+
+          const cached = loadDoctorCache(
+            walletAddress,
+            lastParams.addr,
+            lastParams.op
+          );
+          
+          if (cached && cached.length > 0) {
+            setViewLoading(true);
+
+            // 0. Permission check in frontend before displaying cache
+            try {
+              const permission_exists = await checkDoctorPermissionOnChain(
+                lastParams.addr,
+                walletAddress,
+                lastParams.op
+              );
+
+              if (!permission_exists) {
+                setToast({
+                  message: "Cached view restricted: Access permission has expired or been revoked.",
+                  type: "error",
+                });
+                clearDoctorCache(lastParams.addr, walletAddress, lastParams.op);
+                setViewLoading(false);
+                return; // Stop here, do not display cache
+              }
+            } catch (permErr) {
+              setToast({
+                message: "Failed to verify on-chain permission for cached records.",
+                type: "error",
+              });
+              clearDoctorCache(lastParams.addr, walletAddress, lastParams.op);
+              setViewLoading(false);
+              return;
+            }
+
+            setFromCache(true);
+            setToast({ message: "⚡ Decrypting cached records…", type: "info" });
+            
+            const dec = await decryptAll(cached);
+            setViewRecords(dec);
+            setViewLoading(false);
+            setToast({
+              message: `⚡ ${dec.length} record(s) loaded from cache`,
+              type: "success",
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("[ViewRecords] Failed to load cache on mount", err);
+        setViewLoading(false);
       }
-    } catch {}
-  });
+    };
+
+    autoLoad();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletAddress, naclPrivateKey]);
 
   // ── Helper: decrypt an array of encrypted records in-memory ──
   const decryptAll = async (encRecords) => {
-    const decrypted = [];
-    for (const rec of encRecords) {
+    const decryptPromises = encRecords.map(async (rec) => {
       try {
         if (!rec.encryptedAESKey || !rec.nonce || !rec.senderPublicKey) {
           console.warn(`[ViewRecords] Missing key data for CID ${rec.cid}`);
-          continue;
+          return null;
         }
 
         const aesKeyBytes = decryptAESKeyWithNaCl(
@@ -83,7 +141,7 @@ export default function ViewRecords() {
           }
         }
 
-        decrypted.push({
+        return {
           cid: rec.cid,
           metadata: rec.metadata,
           record: decryptedRecord,
@@ -91,15 +149,18 @@ export default function ViewRecords() {
           timestamp: rec.timestamp,
           issuedByDoctor: rec.issuedByDoctor,
           issuedByLab: rec.issuedByLab,
-        });
+        };
       } catch (err) {
         console.warn(
           `[ViewRecords] Failed to decrypt CID ${rec.cid}:`,
           err.message,
         );
+        return null;
       }
-    }
-    return decrypted;
+    });
+
+    const results = await Promise.all(decryptPromises);
+    return results.filter((r) => r !== null);
   };
 
   /* ── View Patient Records (Doctor flow) ── */
@@ -131,6 +192,7 @@ export default function ViewRecords() {
           message: "Access denied: no active permission or permission expired",
           type: "error",
         });
+        clearDoctorCache(viewAddr, walletAddress, viewOp);
         setViewLoading(false);
         return;
       }
@@ -139,6 +201,7 @@ export default function ViewRecords() {
         message: "Access denied: failed to verify on-chain permission",
         type: "error",
       });
+      clearDoctorCache(viewAddr, walletAddress, viewOp);
       setViewLoading(false);
       return;
     }

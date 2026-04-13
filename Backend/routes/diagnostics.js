@@ -21,7 +21,7 @@ const {
 } = require("../utils/crypto");
 
 const { uploadToIPFS } = require("../services/ipfsService");
-const { getUserByEthereumAddress } = require("../services/userStore");
+const { getUserPublicKeyFromChain } = require("../services/blockchain");
 
 // Multer config — store PDF in memory (max 20 MB)
 const upload = multer({
@@ -66,9 +66,9 @@ router.post("/upload", upload.single("pdfFile"), async (req, res) => {
       parsedTags = ["diagnostics"];
     }
 
-    // ── 1. Look up patient's NaCl public key ──
-    const patient = await getUserByEthereumAddress(patientAddress);
-    if (!patient || !patient.nacl_public_key) {
+    // ── 1. Look up patient's NaCl public key from blockchain ──
+    const patientNaclPubKey = await getUserPublicKeyFromChain(patientAddress);
+    if (!patientNaclPubKey) {
       return res.status(404).json({
         error: "Patient not found or has no NaCl public key registered",
       });
@@ -127,7 +127,7 @@ router.post("/upload", upload.single("pdfFile"), async (req, res) => {
       success: true,
       cid,
       aesKeyBase64,   // Lab frontend encrypts this for the patient
-      patientNaClPublicKey: patient.nacl_public_key,  // Lab frontend needs this for encryption
+      patientNaClPublicKey: patientNaclPubKey,  // Lab frontend needs this for encryption
       txHash: "pending_metamask",
       message: "Diagnostics report encrypted, uploaded to IPFS, ready for blockchain registration",
     });

@@ -24,22 +24,22 @@ export default function Login() {
       const addr = walletAddress || (await connectWallet());
       if (!addr) throw new Error('Wallet not connected');
 
-      // 2. Request nonce from backend
-      setToast({ message: 'Fetching login challenge…', type: 'info' });
-      const { data: nonceData } = await API.get(`/auth/nonce/${addr}`);
-      const nonceMsg = nonceData.message;
+      // 2. Generate timestamp-based challenge
+      const timestamp = Math.floor(Date.now() / 1000);
+      const challengeMsg = `Sign this message to verify your identity on MediRecord.\n\nTimestamp: ${timestamp}`;
 
-      // 3. Sign the nonce message with MetaMask (1st popup — for auth)
+      // 3. Sign the challenge with MetaMask (1st popup — for auth)
       setToast({ message: 'Sign the login message in MetaMask…', type: 'info' });
       const authSignature = await window.ethereum.request({
         method: 'personal_sign',
-        params: [nonceMsg, addr],
+        params: [challengeMsg, addr],
       });
 
-      // 4. Send signature to backend for verification
+      // 4. Send signature + timestamp to backend for verification
       const { data } = await API.post('/auth/login', {
         ethereumAddress: addr,
         signature: authSignature,
+        timestamp,
       });
       login(data); // sets token + user in AuthContext
 
@@ -48,7 +48,7 @@ export default function Login() {
       const keySignature = await signFixedMessage(addr);
       const derivedKey = await deriveKeyFromSignature(keySignature);
 
-      // 6. Decrypt NaCl private key
+      // 6. Decrypt NaCl private key (keys come from blockchain via backend)
       const naclSecretKeyBase64 = await decryptNaClPrivateKey(
         {
           encryptedKey: data.user.encryptedNaclPrivateKey,

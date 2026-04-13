@@ -12,7 +12,7 @@
  *
  *  ROUTE CALLER SUMMARY
  *  ────────────────────
- *  POST /api/auth/register      → PATIENT or DOCTOR (self-registration)
+ *  POST /api/auth/login         → ALL USERS (timestamp-based wallet auth, keys from blockchain)
  *  POST /api/auth/login         → PATIENT or DOCTOR (returns JWT + private key)
  *  GET  /api/auth/me            → PATIENT or DOCTOR (JWT-protected profile)
  *  POST /api/records            → DOCTOR uploads a new encrypted record

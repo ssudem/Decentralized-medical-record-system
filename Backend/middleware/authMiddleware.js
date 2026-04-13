@@ -44,7 +44,6 @@ function verifyToken(req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     // Attach user info to the request for downstream use
     req.user = {
-      id: decoded.id,
       ethereumAddress: decoded.ethereumAddress,
       role: decoded.role,
     };

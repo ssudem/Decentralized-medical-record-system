@@ -34,6 +34,13 @@ export default function GrantAccess() {
   /* ── Fetch patient's records ── */
   const fetchMyRecords = async () => {
     if (!walletAddress || !naclPrivateKey) return;
+
+    // Don't fetch if operation is not selected
+    if (!operation) {
+      setRecords([]);
+      return;
+    }
+
     setRecLoading(true);
     try {
       const { data } = await API.post("/records/view", {
@@ -41,7 +48,9 @@ export default function GrantAccess() {
         userAddress: walletAddress,
         operation: operation || "*",
       });
-      setRecords(data.records || []);
+      const records = data.records || [];
+      setRecords(records);
+      setSelectedCIDs(records.map((rec) => rec.cid));
     } catch (err) {
       setToast({
         message: err.response?.data?.error || "Failed to fetch records",
