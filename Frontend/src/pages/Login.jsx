@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API from '../api/axios';
@@ -109,6 +109,7 @@ export default function Login() {
                 <p className="flex items-center gap-2 text-sm text-primary font-mono justify-center">
                   <Wallet className="w-4 h-4" /> {walletAddress}
                 </p>
+
               </div>
             )}
 

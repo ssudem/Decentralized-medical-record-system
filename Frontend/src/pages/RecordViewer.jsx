@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, Button } from '../components/UI';
+import UserAddress from '../components/UserAddress';
 import { ArrowLeft, User, Stethoscope, Droplets, Activity, ClipboardList, Clock, FileText, FileDown, FlaskConical } from 'lucide-react';
 
 export default function RecordViewer() {
@@ -107,13 +108,13 @@ export default function RecordViewer() {
                     {docAddr && (
                       <div className="flex items-center gap-2">
                         <Stethoscope className="w-4 h-4 text-success" />
-                        <span>Doctor: <strong className="font-mono text-text-primary">{docAddr.slice(0, 6)}…{docAddr.slice(-4)}</strong></span>
+                        <span>Doctor: <UserAddress address={docAddr} className="text-text-primary" /></span>
                       </div>
                     )}
                     {labAddr && (
                       <div className="flex items-center gap-2">
                         <FlaskConical className="w-4 h-4 text-accent" />
-                        <span>Lab: <strong className="font-mono text-text-primary">{labAddr.slice(0, 6)}…{labAddr.slice(-4)}</strong></span>
+                        <span>Lab: <UserAddress address={labAddr} className="text-text-primary" /></span>
                       </div>
                     )}
                   </>
@@ -206,3 +207,4 @@ export default function RecordViewer() {
     </div>
   );
 }
+

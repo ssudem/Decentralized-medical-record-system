@@ -33,6 +33,9 @@ A blockchain-powered, privacy-preserving medical records platform built on **Eth
 | **Role-Based Hierarchy**      | SuperAdmin → Hospital → Doctor / Diagnostics Lab → Patient chain of trust                    |
 | **Client-Side Decryption**    | Records are decrypted entirely in the browser — the server never sees plaintext              |
 | **Operation-Based Filtering** | Doctors can only access records tagged for their specific operation (e.g., `diabetes_check`) |
+| **All Granted Records View**  | Doctors can seamlessly browse all patient records they have access to in a single unified view |
+| **Internal User Directory**   | Custom role-restricted directory replaces external ENS, providing case-insensitive identity mapping |
+| **IPFS Concurrency Cache**    | Optimized API fetching with in-memory LRU caching and strict concurrency limits to prevent rate limits |
 | **PDF Support**               | Doctors and labs can upload encrypted PDF reports alongside structured JSON data             |
 | **Diagnostics Labs**          | Labs can upload lab reports that are encrypted for the patient automatically                 |
 
@@ -59,10 +62,9 @@ A blockchain-powered, privacy-preserving medical records platform built on **Eth
 │  - Access Control │  │   ├ auth      ├ blockchain    └ crypto.js        │
 │  - Record CIDs    │  │   ├ records   ├ ipfsService      (AES-256-GCM)   │
 │  - Permissions    │  │   ├ access    ├ keyStore                         │
-│  - Trust Chain    │  │   ├ hospitals ├ userStore                        │
-│  - Trust Chain    │  │   ├ hospitals ├ requestStore                     │
-│                   │  │   ├ requests  └ keyManager                       │
-│                   │  │   └ diagnostics                                  │
+│  - Trust Chain    │  │   ├ hospitals ├ userStore  (Directory)           │
+│                   │  │   ├ requests  ├ requestStore                     │
+│                   │  │   └ diagnostics └ keyManager                       │
 │                   │  │                                                  │
 └──────────────────-┘  └───────────┬──────────────┬───────────────────────┘
                                    │              │
@@ -72,6 +74,7 @@ A blockchain-powered, privacy-preserving medical records platform built on **Eth
                            │  Cloud       │ │  (Encrypted  │
                            │  - Keys      │ │   Records)   │
                            │  - Requests  │ │              │
+                           │  - Directory │ │              │
                            └──────────────┘ └──────────────┘
 ```
 
@@ -304,6 +307,16 @@ Stores NaCl-encrypted AES keys per user per record (CID).
 | `nonce`             | VARCHAR(64)  | NaCl nonce (Base64)                     |
 | `sender_address`    | VARCHAR(255) | NaCl public key of the encrypting party |
 
+### `users` (Internal Identity Directory)
+
+Maps Ethereum addresses to Registered Names to replace external ENS.
+
+| Column              | Type         | Description                             |
+| ------------------- | ------------ | --------------------------------------- |
+| `wallet_address`    | VARCHAR(255) | User's Ethereum address                 |
+| `registered_name`   | VARCHAR(255) | Case-insensitive display name           |
+| `role`              | VARCHAR(50)  | `patient`, `doctor`, `lab`, `hospital`  |
+
 ### `access_requests`
 
 Tracks doctor → patient access request workflow.
@@ -386,7 +399,7 @@ Tracks doctor → patient access request workflow.
 | Revoke Access         | `/patient/revoke-access`     | Patient    | Remove a doctor's access to records           |
 | Doctor Dashboard      | `/doctor`                    | Doctor     | Home panel with actions                       |
 | Create Record         | `/doctor/create-record`      | Doctor     | Create encrypted medical records              |
-| View Records          | `/doctor/view-records`       | Doctor     | View patient records (with permission)        |
+| View Records          | `/doctor/view-records`       | Doctor     | Dual-mode: Manual Search & All Granted Records|
 | Request Access        | `/doctor/request-access`     | Doctor     | Request patient's approval                    |
 | Record Viewer         | `/record/:cid`               | Any auth   | Decrypt and display a specific record         |
 | Diagnostics Dashboard | `/diagnostics`               | Lab        | Lab technician home                           |

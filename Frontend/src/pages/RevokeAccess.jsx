@@ -7,6 +7,7 @@ import {
   checkDoctorPermissionOnChain,
 } from "../utils/blockchain";
 import { Card, Button, Input, Toast } from "../components/UI";
+import UserAddressInput from "../components/UserAddressInput";
 import { ShieldOff, ArrowLeft } from "lucide-react";
 import OPERATIONS from "../constants/operations";
 
@@ -26,10 +27,13 @@ export default function RevokeAccess() {
     e.preventDefault();
     setRevokeLoading(true);
     try {
-      // 0. check if permission exists on-chain before trying to revoke
+      // 0. Resolve Registered name if needed
+      const resolvedDoctor = revokeForm.doctorAddress;
+
+      // 1. check if permission exists on-chain before trying to revoke
       const permission_exists = await checkDoctorPermissionOnChain(
         walletAddress,
-        revokeForm.doctorAddress,
+        resolvedDoctor,
         revokeForm.operation,
       );
 
@@ -40,12 +44,12 @@ export default function RevokeAccess() {
         });
         return;
       }
-      // 1. Revoke on-chain (MetaMask popup)
+      // 2. Revoke on-chain (MetaMask popup)
       setToast({ message: "Confirm revoke in MetaMask…", type: "info" });
 
-      await revokeAccessOnChain(revokeForm.doctorAddress, revokeForm.operation);
+      await revokeAccessOnChain(resolvedDoctor, revokeForm.operation);
 
-      // 2. Remove off-chain encrypted keys from DB
+      // 3. Remove off-chain encrypted keys from DB
       setToast({
         message: "Removing off-chain encrypted keys from SQL-DB...",
         type: "info",
@@ -59,7 +63,7 @@ export default function RevokeAccess() {
         try {
           await API.post("/access/revoke", {
             cid: rec.cid,
-            doctorAddress: revokeForm.doctorAddress,
+            doctorAddress: resolvedDoctor,
           });
         } catch {
           /* skip */
@@ -100,12 +104,13 @@ export default function RevokeAccess() {
 
       <Card>
         <form onSubmit={handleRevoke} className="grid gap-4 md:grid-cols-2">
-          <Input
+          <UserAddressInput
             id="r-doctor"
-            label="Doctor Ethereum Address"
-            placeholder="0x…"
+            label="Doctor Address or Registered name"
+            placeholder="0x… or doctor.eth"
             value={revokeForm.doctorAddress}
             onChange={setR("doctorAddress")}
+            searchRole="doctor"
             required
           />
           <div>
@@ -148,3 +153,4 @@ export default function RevokeAccess() {
     </div>
   );
 }
+

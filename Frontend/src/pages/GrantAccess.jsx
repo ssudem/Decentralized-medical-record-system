@@ -7,6 +7,7 @@ import {
   checkDoctorPermissionOnChain,
 } from "../utils/blockchain";
 import { Card, Button, Input, Spinner, Toast } from "../components/UI";
+import UserAddressInput from "../components/UserAddressInput";
 import { Shield, ArrowLeft, Clock, Search, UserCheck } from "lucide-react";
 import OPERATIONS from "../constants/operations";
 import {
@@ -90,10 +91,13 @@ export default function GrantAccess() {
 
     setLoading(true);
     try {
-      // 0. check if permission exists on-chain before trying to revoke
+      // 0a. Resolve Registered name if needed
+      const resolvedDoctor = doctorAddress;
+
+      // 0b. check if permission exists on-chain before trying to grant
       const permission_exists = await checkDoctorPermissionOnChain(
         walletAddress,
-        doctorAddress,
+        resolvedDoctor,
         operation,
       );
 
@@ -107,7 +111,7 @@ export default function GrantAccess() {
       // 1. Fetch doctor's NaCl public key
       setToast({ message: "Fetching doctor encryption key…", type: "info" });
       const { data: pkData } = await API.get(
-        `/auth/public-key/${doctorAddress}`,
+        `/auth/public-key/${resolvedDoctor}`,
       );
       const doctorNaClPubKey = pkData.user.naclPublicKey;
 
@@ -122,7 +126,7 @@ export default function GrantAccess() {
       });
       const durationSeconds = parseInt(hours) * 3600;
       await grantAccessOnChain(
-        doctorAddress,
+        resolvedDoctor,
         operation,
         `Manual grant: ${operation}`,
         durationSeconds,
@@ -174,7 +178,7 @@ export default function GrantAccess() {
         await API.post("/access/grant", {
           cid,
           patientAddress: walletAddress,
-          doctorAddress,
+          doctorAddress: resolvedDoctor,
           encryptedAESKey: encryptedKey,
           nonce: encNonce,
           senderNaClPublicKey: patientPubKey,
@@ -183,7 +187,7 @@ export default function GrantAccess() {
       }
 
       setToast({
-        message: `Access granted to ${doctorAddress.slice(0, 8)}… for ${hours}h`,
+        message: `Access granted to ${resolvedDoctor.slice(0, 6)}…${resolvedDoctor.slice(-4)} for ${hours}h`,
         type: "success",
       });
       setDoctorAddress("");
@@ -227,12 +231,13 @@ export default function GrantAccess() {
             <UserCheck className="w-5 h-5 text-primary" /> Doctor Details
           </h2>
           <div className="space-y-4">
-            <Input
+            <UserAddressInput
               id="ga-doc"
-              label="Doctor Ethereum Address"
-              placeholder="0x…"
+              label="Doctor Address or Registered name"
+              placeholder="0x… or doctor.eth"
               value={doctorAddress}
               onChange={(e) => setDoctorAddress(e.target.value)}
+              searchRole="doctor"
               required
             />
 
@@ -332,3 +337,4 @@ export default function GrantAccess() {
     </div>
   );
 }
+

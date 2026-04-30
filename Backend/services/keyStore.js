@@ -138,8 +138,52 @@ async function removeKeysForUser(cid, userAddress) {
 }
 
 
+/**
+ * Retrieve ALL distinct CIDs that a user (doctor) has encrypted keys for.
+ * Used by the "All Granted Records" feature so the doctor can see every
+ * record that patients have shared with them.
+ *
+ * @param {string} userAddress - Ethereum address of the doctor
+ * @returns {Promise<Array<{ cid: string, encrypted_aes_key: string, nonce: string, sender_address: string }>>}
+ */
+async function getAllKeysForUser(userAddress) {
+  return withRetry(async () => {
+    const p = getPool();
+    const [rows] = await p.execute(
+      `SELECT cid, encrypted_aes_key, nonce, sender_address
+       FROM encrypted_keys WHERE user_address = ?
+       ORDER BY created_at DESC`,
+      [userAddress.toLowerCase()]
+    );
+    return rows;
+  });
+}
+
+/**
+ * Retrieve the encrypted AES keys for multiple CIDs for a specific user.
+ * 
+ * @param {string[]} cids      - Array of IPFS CIDs
+ * @param {string} userAddress - Ethereum address
+ * @returns {Promise<Array<{ cid: string, encrypted_aes_key: string, nonce: string, sender_address: string }>>}
+ */
+async function getKeysForCIDs(cids, userAddress) {
+  if (!cids || cids.length === 0) return [];
+  return withRetry(async () => {
+    const p = getPool();
+    const placeholders = cids.map(() => "?").join(",");
+    const [rows] = await p.execute(
+      `SELECT cid, encrypted_aes_key, nonce, sender_address
+       FROM encrypted_keys WHERE user_address = ? AND cid IN (${placeholders})`,
+      [userAddress.toLowerCase(), ...cids]
+    );
+    return rows;
+  });
+}
+
 module.exports = {
   storeEncryptedKey,
   getEncryptedKey,
   removeKeysForUser,
+  getAllKeysForUser,
+  getKeysForCIDs,
 };

@@ -45,30 +45,32 @@ export async function getWriteContract() {
 
 /**
  * Register a new user on-chain. MetaMask signs the tx.
+ * @param {string} name       - Display name (e.g. "Dr. Amit Sharma")
  * @param {string} role       - 'patient', 'doctor', or 'diagnostics'
  * @param {string} naclPubKey - Base64 NaCl public key
  * @param {string} encPrivKey - Hex encrypted NaCl private key
  * @param {string} metadata   - "iv|authTag" packed string
  */
-export async function registerUserOnChain(role, naclPubKey, encPrivKey, metadata) {
+export async function registerUserOnChain(name, role, naclPubKey, encPrivKey, metadata) {
   const roleId = ROLE_MAP[role];
   if (!roleId) throw new Error(`Invalid role: ${role}`);
   const contract = await getWriteContract();
-  const tx = await contract.registerUser(roleId, naclPubKey, encPrivKey, metadata);
+  const tx = await contract.registerUser(name, roleId, naclPubKey, encPrivKey, metadata);
   return tx.wait();
 }
 
 /**
  * Get full user profile from the blockchain.
  * @param {string} address - Ethereum address
- * @returns {{ role, naclPublicKey, encryptedPrivateKey, metadata }}
+ * @returns {{ role, name, naclPublicKey, encryptedPrivateKey, metadata }}
  */
 export async function getUserOnChain(address) {
   const contract = await getReadContract();
-  const [roleId, naclPublicKey, encryptedPrivateKey, metadata] =
+  const [roleId, name, naclPublicKey, encryptedPrivateKey, metadata] =
     await contract.getUser(address);
   return {
     role: ROLE_REVERSE[Number(roleId)] || "none",
+    name: name || "",
     naclPublicKey,
     encryptedPrivateKey,
     metadata, // "iv|authTag"

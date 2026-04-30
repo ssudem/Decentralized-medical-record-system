@@ -10,6 +10,8 @@ import {
 } from "../utils/blockchain";
 import API from "../api/axios";
 import { Card, Button, Input, Toast } from "../components/UI";
+import UserAddressInput from "../components/UserAddressInput";
+import UserAddress from "../components/UserAddress";
 import {
   UserCheck,
   Building2,
@@ -309,12 +311,13 @@ export default function HospitalPanel() {
         </h2>
         <Card>
           <form onSubmit={handleAuthorize} className="flex gap-3 items-end">
-            <Input
+            <UserAddressInput
               id="auth-doc"
-              label="Doctor Ethereum Address"
-              placeholder="0x…"
+              label="Doctor Address or Registered name"
+              placeholder="0x… or doctor.eth"
               value={doctorAddr}
               onChange={(e) => setDoctorAddr(e.target.value)}
+              searchRole="doctor"
               required
               className="flex-1"
             />
@@ -335,12 +338,13 @@ export default function HospitalPanel() {
         </h2>
         <Card>
           <form onSubmit={handleRemoveDoctor} className="flex gap-3 items-end">
-            <Input
+            <UserAddressInput
               id="remove-doc"
-              label="Doctor Ethereum Address"
-              placeholder="0x…"
+              label="Doctor Address or Registered name"
+              placeholder="0x… or doctor.eth"
               value={removeDoctorAddr}
               onChange={(e) => setRemoveDoctorAddr(e.target.value)}
+              searchRole="doctor"
               required
               className="flex-1"
             />
@@ -367,12 +371,13 @@ export default function HospitalPanel() {
         </h2>
         <Card>
           <form onSubmit={handleAuthorizeLab} className="flex gap-3 items-end">
-            <Input
+            <UserAddressInput
               id="auth-lab"
-              label="Diagnostics Lab Ethereum Address"
-              placeholder="0x…"
+              label="Lab Address or Registered name"
+              placeholder="0x… or lab.eth"
               value={labAddr}
               onChange={(e) => setLabAddr(e.target.value)}
+              searchRole="diagnostics"
               required
               className="flex-1"
             />
@@ -394,12 +399,13 @@ export default function HospitalPanel() {
         </h2>
         <Card>
           <form onSubmit={handleRemoveLab} className="flex gap-3 items-end">
-            <Input
+            <UserAddressInput
               id="remove-lab"
-              label="Diagnostics Lab Ethereum Address"
-              placeholder="0x…"
+              label="Lab Address or Registered name"
+              placeholder="0x… or lab.eth"
               value={removeLabAddr}
               onChange={(e) => setRemoveLabAddr(e.target.value)}
+              searchRole="diagnostics"
               required
               className="flex-1"
             />
@@ -421,10 +427,10 @@ export default function HospitalPanel() {
         </h2>
         <Card>
           <div className="flex gap-3 items-end mb-4">
-            <Input
+            <UserAddressInput
               id="chk-doc"
-              label="Doctor Ethereum Address"
-              placeholder="0x…"
+              label="Doctor Address or Registered name"
+              placeholder="0x… or doctor.eth"
               value={checkAddr}
               onChange={(e) => setCheckAddr(e.target.value)}
               className="flex-1"
@@ -448,8 +454,8 @@ export default function HospitalPanel() {
             >
               <ShieldCheck className="w-4 h-4 inline mr-1.5" />
               {checkResult.isLinked
-                ? `✅ Doctor ${checkResult.doctorAddress} is linked to hospital ${checkResult.hospitalAddress}.`
-                : `⚠️ Doctor ${checkResult.doctorAddress} is NOT linked to any hospital.`}
+                ? <>✅ Doctor <UserAddress address={checkResult.doctorAddress} /> is linked to hospital <UserAddress address={checkResult.hospitalAddress} />.</>
+                : <>⚠️ Doctor <UserAddress address={checkResult.doctorAddress} /> is NOT linked to any hospital.</>}
             </div>
           )}
         </Card>
@@ -463,10 +469,10 @@ export default function HospitalPanel() {
         </h2>
         <Card>
           <div className="flex gap-3 items-end mb-4">
-            <Input
+            <UserAddressInput
               id="chk-lab"
-              label="Diagnostics Lab Ethereum Address"
-              placeholder="0x…"
+              label="Lab Address or Registered name"
+              placeholder="0x… or lab.eth"
               value={checkLabAddr}
               onChange={(e) => setCheckLabAddr(e.target.value)}
               className="flex-1"
@@ -490,8 +496,8 @@ export default function HospitalPanel() {
             >
               <ShieldCheck className="w-4 h-4 inline mr-1.5" />
               {checkLabResult.isLinked
-                ? `✅ Lab ${checkLabResult.labAddress} is linked to hospital ${checkLabResult.hospitalAddress}.`
-                : `⚠️ Lab ${checkLabResult.labAddress} is NOT linked to any hospital.`}
+                ? <>✅ Lab <UserAddress address={checkLabResult.labAddress} /> is linked to hospital <UserAddress address={checkLabResult.hospitalAddress} />.</>
+                : <>⚠️ Lab <UserAddress address={checkLabResult.labAddress} /> is NOT linked to any hospital.</>}
             </div>
           )}
         </Card>
@@ -499,3 +505,4 @@ export default function HospitalPanel() {
     </div>
   );
 }
+

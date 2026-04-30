@@ -12,7 +12,7 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Navbar() {
   const {
@@ -70,7 +70,11 @@ export default function Navbar() {
             {walletAddress ? (
               <span className="px-3 py-1.5 rounded-lg bg-surface-light border border-border text-xs font-mono text-text-secondary flex items-center gap-1.5">
                 <Wallet className="w-3.5 h-3.5 text-primary" />
-                {truncate(walletAddress)}
+                {user?.name ? (
+                  <><span className="text-primary font-semibold">{user.name}</span> <span className="text-text-muted">({truncate(walletAddress)})</span></>
+                ) : (
+                  truncate(walletAddress)
+                )}
               </span>
             ) : (
               <button
@@ -174,7 +178,11 @@ export default function Navbar() {
           {walletAddress ? (
             <p className="text-xs font-mono text-text-secondary flex items-center gap-1.5">
               <Wallet className="w-3.5 h-3.5 text-primary" />{" "}
-              {truncate(walletAddress)}
+              {user?.name ? (
+                <><span className="text-primary font-semibold">{user.name}</span> ({truncate(walletAddress)})</>
+              ) : (
+                truncate(walletAddress)
+              )}
             </p>
           ) : (
             <button

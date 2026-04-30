@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import API from "../api/axios";
 import { Card, Button, Input, Toast } from "../components/UI";
+import UserAddressInput from "../components/UserAddressInput";
 import { SendHorizonal, Mail, ArrowLeft } from "lucide-react";
 import OPERATIONS from "../constants/operations";
 import { checkDoctorPermissionOnChain } from "../utils/blockchain";
@@ -25,8 +26,11 @@ export default function RequestAccess() {
     e.preventDefault();
     setReqLoading(true);
     try {
+      // Resolve Registered name if needed
+      const resolvedPatient = reqForm.patientAddress;
+
       const permission_exists = await checkDoctorPermissionOnChain(
-        reqForm.patientAddress,
+        resolvedPatient,
         walletAddress,
         reqForm.operation,
       );
@@ -39,7 +43,7 @@ export default function RequestAccess() {
         return;
       }
       await API.post("/requests", {
-        patientAddress: reqForm.patientAddress,
+        patientAddress: resolvedPatient,
         doctorAddress: walletAddress,
         operation: reqForm.operation,
         purpose: reqForm.purpose,
@@ -82,12 +86,13 @@ export default function RequestAccess() {
           onSubmit={handleRequestAccess}
           className="grid gap-4 md:grid-cols-2"
         >
-          <Input
+          <UserAddressInput
             id="req-paddr"
-            label="Patient Ethereum Address"
-            placeholder="0x…"
+            label="Patient Address or Registered name"
+            placeholder="0x… or patient.eth"
             value={reqForm.patientAddress}
             onChange={setReq("patientAddress")}
+            searchRole="patient"
             required
           />
           <div>
@@ -133,3 +138,4 @@ export default function RequestAccess() {
     </div>
   );
 }
+

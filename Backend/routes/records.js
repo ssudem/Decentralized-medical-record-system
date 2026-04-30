@@ -1,8 +1,9 @@
 /**
  * ============================================================
  *  routes/records.js
- *  POST /api/records       — Create & encrypt a medical record
- *  POST /api/records/view  — Return encrypted records for client-side decryption
+ *  POST /api/records            — Create & encrypt a medical record
+ *  POST /api/records/view       — Return encrypted records for client-side decryption
+ *  GET  /api/records/granted/:doctorAddress — All records granted to a doctor
  * ============================================================
  *
  *  Key change: The server returns the AES key in the creation response.
@@ -38,8 +39,9 @@ const {
   uploadToIPFS,
   fetchFromIPFS,
   fetchMetadataFromIPFS,
+  mapWithConcurrency,
 } = require("../services/ipfsService");
-const { getEncryptedKey } = require("../services/keyStore");
+const { getEncryptedKey, getAllKeysForUser, getKeysForCIDs } = require("../services/keyStore");
 const {
   uploadRecordOnChain,
   getPatientRecordCIDs,
@@ -215,47 +217,46 @@ router.post("/view", async (req, res) => {
     if (allRecords.length === 0) {
       return res.json({ records: [], message: "No records found" });
     }
+    
+    // 3 for optimization fetch all records from db via userAddress
+    const allCIDs = allRecords.map((r) => r.ipfsHash);
+    const userKeys = await getKeysForCIDs(allCIDs, userAddress);
+    const keyMap = {};
+    for (const row of userKeys) {
+      keyMap[row.cid] = row;
+    }
 
-    // ── 3 & 4. Concurrently filter and fetch encrypted data + keys ──
-    const recordPromises = allRecords.map(async (rec) => {
-      try {
-        const cid = rec.ipfsHash;
+    // ── 4. Fetch encrypted data + keys with concurrency limit ──
+    // Only process records that have a key in DB (already filtered above)
+    const accessibleRecords = allRecords.filter((rec) => keyMap[rec.ipfsHash]);
 
-        // 1. Fetch DB key - if no key, the user has no access. No need to hit IPFS.
-        const keyData = await getEncryptedKey(cid, userAddress);
-        if (!keyData) {
-          return null;
-        }
+    const results = await mapWithConcurrency(accessibleRecords, 6, async (rec) => {
+      const cid = rec.ipfsHash;
+      const keyData = keyMap[cid];
 
-        // 2. Fetch full IPFS payload once
-        // (fetchMetadataFromIPFS fetches the entire payload under the hood anyway)
-        const ipfsData = await fetchFromIPFS(cid);
-        const metadata = ipfsData.metadata;
+      // Fetch from IPFS (uses in-memory cache if already fetched)
+      const ipfsData = await fetchFromIPFS(cid);
+      const metadata = ipfsData.metadata;
 
-        // 3. Filter by metadata tags if not self_view
-        const isSelfView = isPatient && operation === "self_view";
-        if (!isSelfView && !isRecordRelevant(operation, metadata.tags || [])) {
-          return null; // Does not match tags
-        }
-
-        return {
-          cid: cid,
-          metadata: metadata,
-          encryptedPayload: ipfsData.encryptedPayload,
-          encryptedAESKey: keyData.encrypted_aes_key,
-          nonce: keyData.nonce,
-          senderPublicKey: keyData.sender_address, // NaCl public key of sender
-          issuedByDoctor: rec.issuedByDoctor,
-          issuedByLab: rec.issuedByLab || null,
-          timestamp: rec.timestamp.toString(),
-        };
-      } catch (err) {
-        console.warn(`[View] Failed to process CID ${rec.ipfsHash}: ${err.message}`);
-        return null;
+      // Filter by metadata tags if not self_view
+      const isSelfView = isPatient && operation === "self_view";
+      if (!isSelfView && !isRecordRelevant(operation, metadata.tags || [])) {
+        return null; // Does not match tags
       }
+
+      return {
+        cid,
+        metadata,
+        encryptedPayload: ipfsData.encryptedPayload,
+        encryptedAESKey: keyData.encrypted_aes_key,
+        nonce: keyData.nonce,
+        senderPublicKey: keyData.sender_address,
+        issuedByDoctor: rec.issuedByDoctor,
+        issuedByLab: rec.issuedByLab || null,
+        timestamp: rec.timestamp.toString(),
+      };
     });
 
-    const results = await Promise.allSettled(recordPromises);
     const records = results
       .filter((r) => r.status === "fulfilled" && r.value !== null)
       .map((r) => r.value);
@@ -272,6 +273,143 @@ router.post("/view", async (req, res) => {
     res
       .status(500)
       .json({ error: "Internal server error while viewing records." });
+  }
+});
+
+// ─────────────────────────────────────────────
+//  GET /api/records/granted/:doctorAddress — All records granted to a doctor
+// ─────────────────────────────────────────────
+
+/**
+ * @caller  DOCTOR (frontend — "All Granted Records" tab)
+ *
+ * Flow:
+ *  1. Query encrypted_keys DB for all CIDs where user_address = doctorAddress
+ *  2. Fetch IPFS metadata for all CIDs concurrently
+ *  3. Group CIDs by patient, then check ALL operations on-chain per unique patient
+ *  4. Categorize each record under its matching operation(s) using isRecordRelevant()
+ *  5. Return records grouped: patient → operationGroups → records[]
+ */
+router.get("/granted/:doctorAddress", async (req, res) => {
+  try {
+    const { doctorAddress } = req.params;
+    if (!doctorAddress) {
+      return res.status(400).json({ error: "Missing doctorAddress" });
+    }
+
+    // 1. Get all encrypted keys for this doctor from DB
+    const allKeys = await getAllKeysForUser(doctorAddress);
+    if (!allKeys || allKeys.length === 0) {
+      return res.json({
+        groups: [],
+        totalRecords: 0,
+        message: "No records have been granted to you yet.",
+      });
+    }
+
+    console.log(`[Granted] Doctor ${doctorAddress} has ${allKeys.length} encrypted key(s) in DB`);
+
+    const ALL_OPERATIONS = Object.keys(OPERATION_TAG_MAP).filter(op => op !== "self_view");
+
+    // 2. Fetch IPFS metadata for all CIDs (concurrency-limited, cached)
+    const cidDataMap = {};    // cid -> { metadata, encryptedPayload, keyRow }
+    const patientCIDMap = {}; // patientAddr -> [cid, ...]
+
+    await mapWithConcurrency(allKeys, 6, async (keyRow) => {
+      const cid = keyRow.cid;
+      const ipfsData = await fetchFromIPFS(cid);
+      if (!ipfsData || !ipfsData.metadata) return null;
+
+      const metadata = ipfsData.metadata;
+      const patientAddress = metadata.patientAddress?.toLowerCase();
+      if (!patientAddress) {
+        console.warn(`[Granted] CID ${cid} has no patientAddress in metadata`);
+        return null;
+      }
+
+      cidDataMap[cid] = { metadata, encryptedPayload: ipfsData.encryptedPayload, keyRow };
+      if (!patientCIDMap[patientAddress]) patientCIDMap[patientAddress] = [];
+      patientCIDMap[patientAddress].push(cid);
+      return cid;
+    });
+
+    // 3. For each unique patient, check ALL operations on-chain concurrently
+    const patientPerms = {}; // patientAddr -> { operation: boolean }
+
+    const permPromises = Object.keys(patientCIDMap).map(async (patientAddr) => {
+      const perms = {};
+      const opChecks = ALL_OPERATIONS.map(async (op) => {
+        try {
+          perms[op] = await checkPermission(patientAddr, doctorAddress, op);
+        } catch {
+          perms[op] = false;
+        }
+      });
+      await Promise.allSettled(opChecks);
+      patientPerms[patientAddr] = perms;
+    });
+
+    await Promise.allSettled(permPromises);
+
+    // 4. Categorize records: patient → operation → records[]
+    const groups = [];
+
+    for (const [patientAddr, cids] of Object.entries(patientCIDMap)) {
+      const perms = patientPerms[patientAddr] || {};
+      const activeOps = ALL_OPERATIONS.filter(op => perms[op]);
+
+      if (activeOps.length === 0) continue; // No active on-chain permissions
+
+      const operationGroups = {}; // operation -> records[]
+
+      for (const cid of cids) {
+        const data = cidDataMap[cid];
+        if (!data) continue;
+
+        const recordTags = data.metadata.tags || [];
+
+        // Place record under every matching active operation
+        for (const op of activeOps) {
+          if (isRecordRelevant(op, recordTags)) {
+            if (!operationGroups[op]) operationGroups[op] = [];
+            operationGroups[op].push({
+              cid,
+              patientAddress: patientAddr,
+              metadata: data.metadata,
+              encryptedPayload: data.encryptedPayload,
+              encryptedAESKey: data.keyRow.encrypted_aes_key,
+              nonce: data.keyRow.nonce,
+              senderPublicKey: data.keyRow.sender_address,
+              timestamp: data.metadata.createdAt,
+            });
+          }
+        }
+      }
+
+      if (Object.keys(operationGroups).length === 0) continue;
+
+      groups.push({
+        patientAddress: patientAddr,
+        activeOperations: activeOps,
+        operationGroups,
+        totalRecords: new Set(cids.filter(c => cidDataMap[c])).size,
+      });
+    }
+
+    const totalCategorized = groups.reduce((sum, g) =>
+      sum + Object.values(g.operationGroups).reduce((s, recs) => s + recs.length, 0), 0
+    );
+
+    console.log(`[Granted] Returning ${totalCategorized} categorized record(s) across ${groups.length} patient(s)`);
+
+    res.json({
+      groups,
+      totalRecords: totalCategorized,
+      totalPatients: groups.length,
+    });
+  } catch (error) {
+    console.error("[Granted] Error:", error.message);
+    res.status(500).json({ error: "Internal server error while fetching granted records." });
   }
 });
 

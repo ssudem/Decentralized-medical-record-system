@@ -101,6 +101,7 @@ router.post("/login", async (req, res) => {
       signMessage: SIGN_MESSAGE,
       user: {
         role: user.role,
+        name: user.name,
         naclPublicKey: user.naclPublicKey,
         ethereumAddress: user.ethereum_address,
         // Encrypted NaCl private key — client decrypts with SIGN_MESSAGE signature
@@ -130,6 +131,7 @@ router.get("/me", verifyToken, async (req, res) => {
       success: true,
       user: {
         role: user.role,
+        name: user.name,
         naclPublicKey: user.naclPublicKey,
         ethereumAddress: user.ethereum_address,
       },

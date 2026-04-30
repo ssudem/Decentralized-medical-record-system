@@ -98,16 +98,18 @@ contract MedicalRecordSystem is Patient {
     ///         Role: 1 = Patient, 2 = Doctor, 3 = Diagnostics.
     ///         metadata = "iv|authTag" (hex-encoded, pipe-separated).
     function registerUser(
+        string calldata _name,
         uint8 _role,
         string calldata _naclPubKey,
         string calldata _encPrivKey,
         string calldata _metadata
     ) external {
         if (_users[msg.sender].role != UserRole.None) revert AlreadyRegistered();
-        if (_role == 0 || _role > 3) revert Unauthorized(); // None is not a valid role
+        if (_role == 0 || _role > 3) revert Unauthorized();
 
         _users[msg.sender] = UserProfile({
             role: UserRole(_role),
+            name: _name,
             naclPublicKey: _naclPubKey,
             encryptedPrivateKey: _encPrivKey,
             metadata: _metadata
@@ -119,6 +121,7 @@ contract MedicalRecordSystem is Patient {
     /// @notice Get full user profile (view — free, no gas).
     function getUser(address _addr) external view returns (
         uint8 role,
+        string memory name,
         string memory naclPublicKey,
         string memory encryptedPrivateKey,
         string memory metadata
@@ -126,6 +129,7 @@ contract MedicalRecordSystem is Patient {
         UserProfile storage u = _users[_addr];
         return (
             uint8(u.role),
+            u.name,
             u.naclPublicKey,
             u.encryptedPrivateKey,
             u.metadata

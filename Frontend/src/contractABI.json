@@ -368,6 +368,11 @@
   {
     "inputs": [
       {
+        "internalType": "string",
+        "name": "_name",
+        "type": "string"
+      },
+      {
         "internalType": "uint8",
         "name": "_role",
         "type": "uint8"
@@ -696,6 +701,11 @@
         "internalType": "uint8",
         "name": "role",
         "type": "uint8"
+      },
+      {
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
       },
       {
         "internalType": "string",

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import API from "../api/axios";
 import { Card, Button, Spinner, Toast } from "../components/UI";
+import UserAddress from "../components/UserAddress";
 import { FileText, RefreshCw, ArrowLeft, Trash2 } from "lucide-react";
 import {
   decryptAESKeyWithNaCl,
@@ -292,13 +293,13 @@ export default function PatientRecords() {
               {rec.issuedByDoctor && rec.issuedByDoctor !== "0x0000000000000000000000000000000000000000" && (
                 <p className="text-sm text-text-secondary mb-1">
                   <strong>🩺 Issued by Doctor:</strong>{" "}
-                  <span className="font-mono text-xs">{rec.issuedByDoctor.slice(0, 6)}…{rec.issuedByDoctor.slice(-4)}</span>
+                  <UserAddress address={rec.issuedByDoctor} className="text-xs" />
                 </p>
               )}
               {rec.issuedByLab && rec.issuedByLab !== "0x0000000000000000000000000000000000000000" && (
                 <p className="text-sm text-text-secondary mb-1">
                   <strong>🔬 Issued by Lab:</strong>{" "}
-                  <span className="font-mono text-xs">{rec.issuedByLab.slice(0, 6)}…{rec.issuedByLab.slice(-4)}</span>
+                  <UserAddress address={rec.issuedByLab} className="text-xs" />
                 </p>
               )}
               {/* Fallback: check metadata for doctorAddress/labAddress */}
@@ -308,15 +309,13 @@ export default function PatientRecords() {
                   {(rec.metadata?.doctorAddress || rec.record?.doctorAddress) && (
                     <p className="text-sm text-text-secondary mb-1">
                       <strong>🩺 Issued by Doctor:</strong>{" "}
-                      <span className="font-mono text-xs">
-                        {(rec.metadata?.doctorAddress || rec.record?.doctorAddress).slice(0, 6)}…{(rec.metadata?.doctorAddress || rec.record?.doctorAddress).slice(-4)}
-                      </span>
+                      <UserAddress address={rec.metadata?.doctorAddress || rec.record?.doctorAddress} className="text-xs" />
                     </p>
                   )}
                   {rec.metadata?.labAddress && (
                     <p className="text-sm text-text-secondary mb-1">
                       <strong>🔬 Issued by Lab:</strong>{" "}
-                      <span className="font-mono text-xs">{rec.metadata.labAddress.slice(0, 6)}…{rec.metadata.labAddress.slice(-4)}</span>
+                      <UserAddress address={rec.metadata.labAddress} className="text-xs" />
                     </p>
                   )}
                 </>
@@ -364,3 +363,4 @@ export default function PatientRecords() {
     </div>
   );
 }
+

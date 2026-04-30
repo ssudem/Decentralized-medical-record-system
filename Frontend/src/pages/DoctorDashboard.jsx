@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import API from "../api/axios";
 import { Card, Toast } from "../components/UI";
+import UserAddress from "../components/UserAddress";
 import {
   FilePlus,
   Search,
@@ -13,7 +14,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import SPECIALTIES from "../constants/specialties";
-import { clearAllDoctorCaches } from "../utils/recordCache";
+import { clearAllDoctorCaches, clearGrantedCache, saveViewMode } from "../utils/recordCache";
 
 export default function DoctorDashboard() {
   const { user, walletAddress } = useAuth();
@@ -52,8 +53,12 @@ export default function DoctorDashboard() {
       }
     })();
 
+    // Lookup Registered name for wallet
+
     // Clear doctor view-records cache when returning to dashboard
     clearAllDoctorCaches();
+    clearGrantedCache(walletAddress);
+    saveViewMode("manual");
     sessionStorage.removeItem('doctor_view_last_params');
   }, [walletAddress]);
 
@@ -119,7 +124,7 @@ export default function DoctorDashboard() {
         </h1>
         <div className="flex items-center gap-3 mt-1">
           <p className="text-text-secondary text-sm flex items-center gap-2">
-            Welcome, Dr. {walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : 'Doctor'}
+            Welcome, Dr. {user?.name || (walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : 'Doctor')}
           </p>
           <div className="flex items-center gap-2 border-l border-border pl-3">
             <Stethoscope className="w-4 h-4 text-text-muted" />
@@ -139,7 +144,7 @@ export default function DoctorDashboard() {
           {hospitalAddr && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-success/10 text-success text-xs font-medium border-l border-border pl-3 ml-1">
               <Building2 className="w-3 h-3" /> Hospital:{" "}
-              {hospitalAddr.slice(0, 6)}…{hospitalAddr.slice(-4)}
+              <UserAddress address={hospitalAddr} />
             </span>
           )}
         </div>
@@ -187,3 +192,4 @@ export default function DoctorDashboard() {
     </div>
   );
 }
+

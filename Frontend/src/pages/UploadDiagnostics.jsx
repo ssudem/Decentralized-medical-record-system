@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import API from "../api/axios";
 import { addRecordLabOnChain } from "../utils/blockchain";
 import { Card, Button, Input, Toast } from "../components/UI";
+import UserAddressInput from "../components/UserAddressInput";
 import { Upload, ArrowLeft, FileText, FlaskConical, FileUp } from "lucide-react";
 import { encryptAESKeyWithNaCl } from "../utils/naclCrypto";
 import nacl from "tweetnacl";
@@ -61,6 +62,10 @@ export default function UploadDiagnostics() {
 
     setLoading(true);
     try {
+      // 0. Resolve Registered name if needed
+      setToast({ message: "Resolving address…", type: "info" });
+      const resolvedPatient = patientAddress;
+
       // Build lab report JSON
       const labReport = {
         patientName,
@@ -76,7 +81,7 @@ export default function UploadDiagnostics() {
       // Build FormData for multipart upload
       const formData = new FormData();
       formData.append("pdfFile", pdfFile);
-      formData.append("patientAddress", patientAddress);
+      formData.append("patientAddress", resolvedPatient);
       formData.append("labReport", JSON.stringify(labReport));
       formData.append("recordType", recordType);
       formData.append("tags", JSON.stringify(tags.split(",").map((t) => t.trim()).filter(Boolean)));
@@ -110,7 +115,7 @@ export default function UploadDiagnostics() {
 
       await API.post('/access/store-key', {
         cid: data.cid,
-        userAddress: patientAddress,
+        userAddress: resolvedPatient,
         encryptedAESKey: encryptedKey,
         nonce: encNonce,
         senderNaClPublicKey: labPubKey,
@@ -118,7 +123,7 @@ export default function UploadDiagnostics() {
 
       // 2. Register CID on blockchain via MetaMask
       setToast({ message: "Confirm the blockchain transaction in MetaMask…", type: "info" });
-      await addRecordLabOnChain(patientAddress, data.cid);
+      await addRecordLabOnChain(resolvedPatient, data.cid);
 
       setToast({
         message: `Report uploaded successfully! CID: ${data.cid.slice(0, 12)}…`,
@@ -194,12 +199,13 @@ export default function UploadDiagnostics() {
               onChange={(e) => setPatientName(e.target.value)}
               required
             />
-            <Input
+            <UserAddressInput
               id="diag-patient"
-              label="Patient Ethereum Address"
-              placeholder="0x…"
+              label="Patient Address or Registered name"
+              placeholder="0x… or patient.eth"
               value={patientAddress}
               onChange={(e) => setPatientAddress(e.target.value)}
+              searchRole="patient"
               required
             />
           </div>
@@ -309,3 +315,4 @@ export default function UploadDiagnostics() {
     </div>
   );
 }
+

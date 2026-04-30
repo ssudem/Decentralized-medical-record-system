@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import API from "../api/axios";
 import { addRecordOnChain } from "../utils/blockchain";
 import { Card, Button, Input, Toast } from "../components/UI";
+import UserAddressInput from "../components/UserAddressInput";
 import { Upload, ArrowLeft, X, FileText, FileUp } from "lucide-react";
 import OPERATIONS from "../constants/operations";
 import SPECIALTIES from "../constants/specialties";
@@ -92,10 +93,13 @@ export default function CreateRecord() {
 
     setLoading(true);
     try {
+      // 0. Resolve Registered name if needed
+      const resolvedPatient = patientAddress;
+
       // 1. Fetch patient's NaCl public key
       setToast({ message: "Fetching patient encryption key…", type: "info" });
       const { data: pkData } = await API.get(
-        `/auth/public-key/${patientAddress}`,
+        `/auth/public-key/${resolvedPatient}`,
       );
       const patientNaClPublicKey = pkData.user.naclPublicKey;
       if (!patientNaClPublicKey)
@@ -154,7 +158,7 @@ export default function CreateRecord() {
         // Use FormData when a PDF is attached
         const formData = new FormData();
         formData.append("pdfFile", pdfFile);
-        formData.append("patientAddress", patientAddress);
+        formData.append("patientAddress", resolvedPatient);
         formData.append("patientNaClPublicKey", patientNaClPublicKey);
         formData.append("doctorAddress", walletAddress);
         formData.append("record", JSON.stringify(record));
@@ -164,7 +168,7 @@ export default function CreateRecord() {
         data = resp.data;
       } else {
         const resp = await API.post("/records", {
-          patientAddress,
+          patientAddress: resolvedPatient,
           patientNaClPublicKey,
           doctorAddress: walletAddress,
           record,
@@ -199,7 +203,7 @@ export default function CreateRecord() {
 
       await API.post("/access/store-key", {
         cid: data.cid,
-        userAddress: patientAddress,
+        userAddress: resolvedPatient,
         encryptedAESKey: encryptedKey,
         nonce: encNonce,
         senderNaClPublicKey: doctorPubKey,
@@ -210,7 +214,7 @@ export default function CreateRecord() {
         message: "Confirm the blockchain transaction in MetaMask…",
         type: "info",
       });
-      await addRecordOnChain(patientAddress, data.cid);
+      await addRecordOnChain(resolvedPatient, data.cid);
 
       setToast({
         message: `Record created! CID: ${data.cid.slice(0, 12)}…`,
@@ -272,23 +276,27 @@ export default function CreateRecord() {
       </div>
 
       {/* ─── Mode Toggle ─── */}
-      <div className="flex rounded-xl border border-border overflow-hidden w-fit">
+      <div className="flex gap-2">
         <button
           type="button"
           onClick={() => {
             setUploadMode("form");
             setPdfFile(null);
           }}
-          className={`px-5 py-2.5 text-sm font-semibold flex items-center gap-2 transition-colors cursor-pointer
-            ${uploadMode === "form" ? "bg-primary text-white" : "bg-surface-card text-text-secondary hover:text-text-primary"}`}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer
+            ${uploadMode === "form"
+              ? "bg-primary text-white shadow-md shadow-primary/20"
+              : "bg-surface-light text-text-secondary border border-border hover:border-primary/40"}`}
         >
           <FileText className="w-4 h-4" /> Fill Form
         </button>
         <button
           type="button"
           onClick={() => setUploadMode("pdf")}
-          className={`px-5 py-2.5 text-sm font-semibold flex items-center gap-2 transition-colors cursor-pointer
-            ${uploadMode === "pdf" ? "bg-primary text-white" : "bg-surface-card text-text-secondary hover:text-text-primary"}`}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer
+            ${uploadMode === "pdf"
+              ? "bg-accent text-white shadow-md shadow-accent/20"
+              : "bg-surface-light text-text-secondary border border-border hover:border-accent/40"}`}
         >
           <FileUp className="w-4 h-4" /> Upload PDF Report
         </button>
@@ -302,12 +310,13 @@ export default function CreateRecord() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <Input
+              <UserAddressInput
                 id="cr-addr"
-                label="Patient Ethereum Address *"
-                placeholder="0x…"
+                label="Patient Address or Registered name *"
+                placeholder="0x… or patient.eth"
                 value={patientAddress}
                 onChange={(e) => setPatientAddress(e.target.value)}
+                searchRole="patient"
                 required
               />
             </div>
@@ -644,3 +653,4 @@ export default function CreateRecord() {
     </div>
   );
 }
+

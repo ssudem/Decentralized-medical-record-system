@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import API from "../api/axios";
 import { Card, Toast } from "../components/UI";
+import UserAddress from "../components/UserAddress";
 import {
   Upload,
   ChevronRight,
@@ -10,6 +11,7 @@ import {
   Building2,
   FlaskConical,
 } from "lucide-react";
+import { getDiagnosticsLabHospital } from "../utils/blockchain";
 
 export default function DiagnosticsDashboard() {
   const { user, walletAddress } = useAuth();
@@ -79,12 +81,12 @@ export default function DiagnosticsDashboard() {
         <div className="flex items-center gap-3 mt-1">
           <p className="text-text-secondary text-sm flex items-center gap-2">
             <FlaskConical className="w-4 h-4 text-accent" />
-            Welcome, {walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : 'Lab'}
+            Welcome, {user?.name || (walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : 'Lab')}
           </p>
           {hospitalAddr && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-success/10 text-success text-xs font-medium border-l border-border pl-3 ml-1">
               <Building2 className="w-3 h-3" /> Hospital:{" "}
-              {hospitalAddr.slice(0, 6)}…{hospitalAddr.slice(-4)}
+              <UserAddress address={hospitalAddr} />
             </span>
           )}
         </div>
@@ -133,3 +135,4 @@ export default function DiagnosticsDashboard() {
     </div>
   );
 }
+

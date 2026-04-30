@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import API from "../api/axios";
 import { grantAccessOnChain } from "../utils/blockchain";
 import { Card, Button, Spinner, Toast } from "../components/UI";
+import UserAddress from "../components/UserAddress";
 import {
   ShieldPlus,
   ShieldOff,
@@ -238,9 +239,9 @@ export default function PatientDashboard() {
           </h1>
           <p className="text-text-secondary text-sm mt-1">
             Welcome,{" "}
-            {walletAddress
+            {user?.name || (walletAddress
               ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}`
-              : "Patient"}
+              : "Patient")}
           </p>
         </div>
         <Button
@@ -318,9 +319,7 @@ export default function PatientDashboard() {
                 </div>
                 <p className="text-sm text-text-secondary mb-1">
                   <strong>Doctor:</strong>{" "}
-                  <span className="font-mono text-xs break-all">
-                    {req.doctor_address}
-                  </span>
+                  <UserAddress address={req.doctor_address} className="text-xs" />
                 </p>
                 <p className="text-sm text-text-secondary mb-1">
                   <strong>Purpose:</strong> {req.purpose}
@@ -374,3 +373,4 @@ export default function PatientDashboard() {
     </div>
   );
 }
+

@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import API from '../api/axios';
 import { removeHospitalOnChain } from '../utils/blockchain';
 import { Card, Button, Input, Toast } from '../components/UI';
+import UserAddressInput from '../components/UserAddressInput';
+import UserAddress from '../components/UserAddress';
 import { Building2, Search, ShieldCheck, Trash2 } from 'lucide-react';
 
 export default function AdminPanel() {
@@ -113,7 +115,7 @@ export default function AdminPanel() {
         </h2>
         <Card>
           <form onSubmit={handleAddHospital} className="flex gap-3 items-end">
-            <Input id="hosp-addr" label="Hospital Ethereum Address" placeholder="0x…"
+            <UserAddressInput id="hosp-addr" label="Hospital Address or Registered name" placeholder="0x… or hospital.eth"
               value={hospAddr} onChange={(e) => setHospAddr(e.target.value)} required className="flex-1" />
             <Button type="submit" loading={addLoading}>
               <Building2 className="w-4 h-4" /> Add Hospital
@@ -129,7 +131,7 @@ export default function AdminPanel() {
         </h2>
         <Card>
           <form onSubmit={handleRemoveHospital} className="flex gap-3 items-end">
-            <Input id="remove-hosp-addr" label="Hospital Ethereum Address" placeholder="0x…"
+            <UserAddressInput id="remove-hosp-addr" label="Hospital Address or Registered name" placeholder="0x… or hospital.eth"
               value={removeAddr} onChange={(e) => setRemoveAddr(e.target.value)} required className="flex-1" />
             <Button type="submit" loading={removeLoading} variant="danger">
               <Trash2 className="w-4 h-4" /> Remove Hospital
@@ -148,7 +150,7 @@ export default function AdminPanel() {
         </h2>
         <Card>
           <div className="flex gap-3 items-end mb-4">
-            <Input id="chk-addr" label="Ethereum Address" placeholder="0x…"
+            <UserAddressInput id="chk-addr" label="Address or Registered name" placeholder="0x… or name.eth"
               value={checkAddr} onChange={(e) => setCheckAddr(e.target.value)} className="flex-1" />
             <Button type="button" variant="secondary" onClick={handleCheckHospital} loading={checkLoading}>
               <Building2 className="w-4 h-4" /> Hospital?
@@ -167,11 +169,11 @@ export default function AdminPanel() {
               <ShieldCheck className="w-4 h-4 inline mr-1.5" />
               {checkResult.type === 'hospital'
                 ? (checkResult.isValid
-                    ? `✅ ${checkResult.address} is a registered hospital.`
-                    : `⚠️ ${checkResult.address} is NOT a registered hospital.`)
+                    ? <>✅ <UserAddress address={checkResult.address} /> is a registered hospital.</>
+                    : <>⚠️ <UserAddress address={checkResult.address} /> is NOT a registered hospital.</>)
                 : (checkResult.isLinked
-                    ? `✅ Doctor ${checkResult.doctorAddress} is linked to hospital ${checkResult.hospitalAddress}.`
-                    : `⚠️ Doctor ${checkResult.doctorAddress} is NOT linked to any hospital.`)}
+                    ? <>✅ Doctor <UserAddress address={checkResult.doctorAddress} /> is linked to hospital <UserAddress address={checkResult.hospitalAddress} />.</>
+                    : <>⚠️ Doctor <UserAddress address={checkResult.doctorAddress} /> is NOT linked to any hospital.</>)}
             </div>
           )}
         </Card>
@@ -179,3 +181,4 @@ export default function AdminPanel() {
     </div>
   );
 }
+

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Button, Card, Toast } from '../components/UI';
-import { UserPlus, Wallet } from 'lucide-react';
+import API from '../api/axios';
+import { Button, Card, Input, Toast } from '../components/UI';
+import { UserPlus, Wallet, User } from 'lucide-react';
 import {
   signFixedMessage,
   deriveKeyFromSignature,
@@ -15,12 +16,17 @@ export default function Register() {
   const { connectWallet, walletAddress } = useAuth();
   const navigate = useNavigate();
 
+  const [fullName, setFullName] = useState('');
   const [role, setRole] = useState('patient');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!fullName.trim()) {
+      setToast({ message: 'Please enter your full name', type: 'error' });
+      return;
+    }
     setLoading(true);
     try {
       // 1. Ensure wallet is connected
@@ -51,9 +57,21 @@ export default function Register() {
       // 6. Pack IV + AuthTag into metadata string (pipe-separated)
       const metadata = `${iv}|${authTag}`;
 
-      // 7. Register directly on blockchain (MetaMask popup — gas tx)
+      // 7. Register on blockchain with name (MetaMask popup — gas tx)
       setToast({ message: 'Confirm the registration transaction in MetaMask…', type: 'info' });
-      await registerUserOnChain(role, naclPub, encryptedKey, metadata);
+      await registerUserOnChain(fullName.trim(), role, naclPub, encryptedKey, metadata);
+
+      // 8. Save to MySQL directory (so other users can search by name)
+      try {
+        await API.post('/users/register', {
+          walletAddress: addr,
+          fullName: fullName.trim(),
+          role,
+        });
+      } catch {
+        // Non-critical — blockchain is the source of truth
+        console.warn('Failed to save to user directory (non-critical)');
+      }
 
       setToast({ message: 'Registered successfully on the blockchain!', type: 'success' });
       setTimeout(() => navigate('/login'), 1500);
@@ -78,6 +96,17 @@ export default function Register() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Full Name */}
+          <Input
+            id="reg-name"
+            label="Full Name"
+            placeholder="e.g. Dr. Amit Sharma"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            required
+            icon={<User className="w-4 h-4" />}
+          />
+
           {/* Role */}
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-1.5">Role</label>
@@ -93,9 +122,11 @@ export default function Register() {
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-1.5">Ethereum Wallet</label>
             {walletAddress ? (
-              <p className="flex items-center gap-1.5 text-sm text-primary font-mono">
-                <Wallet className="w-4 h-4" /> {walletAddress}
-              </p>
+              <div className="space-y-1.5">
+                <p className="flex items-center gap-1.5 text-sm text-primary font-mono">
+                  <Wallet className="w-4 h-4" /> {walletAddress}
+                </p>
+              </div>
             ) : (
               <Button type="button" variant="secondary" onClick={connectWallet} className="w-full">
                 <Wallet className="w-4 h-4" /> Connect MetaMask

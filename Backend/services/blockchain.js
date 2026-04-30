@@ -363,7 +363,7 @@ const ROLE_REVERSE = { 0: "none", 1: "patient", 2: "doctor", 3: "diagnostics" };
  */
 async function getUserFromChain(address) {
   const c = getContract();
-  const [roleId, naclPublicKey, encryptedPrivateKey, metadata] =
+  const [roleId, name, naclPublicKey, encryptedPrivateKey, metadata] =
     await c.getUser(address);
 
   const role = ROLE_REVERSE[Number(roleId)] || "none";
@@ -374,6 +374,7 @@ async function getUserFromChain(address) {
 
   return {
     role,
+    name: name || "",
     naclPublicKey,
     encryptedPrivateKey,
     iv: iv || "",

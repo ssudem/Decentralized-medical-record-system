@@ -44,6 +44,7 @@ const accessRouter = require("./routes/access");
 const hospitalsRouter = require("./routes/hospitals");
 const requestsRouter = require("./routes/requests");
 const diagnosticsRouter = require("./routes/diagnostics");
+const usersRouter = require("./routes/users");
 
 // ─────────────────────────────────────────────
 //  App Initialization
@@ -66,6 +67,7 @@ app.use("/api/access", accessRouter);
 app.use("/api/hospitals", hospitalsRouter);
 app.use("/api/requests", requestsRouter);
 app.use("/api/diagnostics", diagnosticsRouter);
+app.use("/api/users", usersRouter);
 
 // Health check — returns no sensitive information
 app.get("/api/health", (req, res) => {

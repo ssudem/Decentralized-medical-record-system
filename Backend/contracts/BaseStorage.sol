@@ -10,6 +10,7 @@ contract BaseStorage {
 
     struct UserProfile {
         UserRole role;
+        string name;                // Display name (e.g. "Dr. Amit Sharma")
         string naclPublicKey;       // Base64 NaCl public key
         string encryptedPrivateKey; // Hex-encoded AES-GCM encrypted NaCl private key
         string metadata;            // Packed: "iv|authTag" (hex-encoded, pipe-separated)

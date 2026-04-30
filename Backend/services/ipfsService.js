@@ -53,6 +53,26 @@ const PINATA_BASE_URL = "https://api.pinata.cloud";
 const PINATA_GATEWAY  = "https://gateway.pinata.cloud/ipfs";
 
 // ─────────────────────────────────────────────
+//  In-memory IPFS cache (CID → payload)
+//  IPFS content is immutable: same CID = same data forever.
+//  Safe to cache indefinitely. Capped at 500 entries to bound memory.
+// ─────────────────────────────────────────────
+const IPFS_CACHE = new Map();
+const IPFS_CACHE_MAX = 500;
+
+function cacheSet(cid, data) {
+  if (IPFS_CACHE.size >= IPFS_CACHE_MAX) {
+    // Evict oldest entry (first inserted)
+    const oldest = IPFS_CACHE.keys().next().value;
+    IPFS_CACHE.delete(oldest);
+  }
+  IPFS_CACHE.set(cid, data);
+}
+
+// In-flight dedup — avoid fetching the same CID concurrently
+const inFlight = new Map();
+
+// ─────────────────────────────────────────────
 //  Upload to IPFS
 // ─────────────────────────────────────────────
 
@@ -111,15 +131,32 @@ async function uploadToIPFS(metadata, encryptedPayload) {
  * @returns {Promise<{ metadata: object, encryptedPayload: object }>}
  */
 async function fetchFromIPFS(cid) {
-  // PINATA_JWT is injected from env — never echoed in logs or responses
-  const response = await axios.get(`${PINATA_GATEWAY}/${cid}`, {
-    headers: {
-      Authorization: `Bearer ${process.env.PINATA_JWT}`,
-    },
-  });
+  // 1. Check in-memory cache first (instant)
+  if (IPFS_CACHE.has(cid)) return IPFS_CACHE.get(cid);
 
-  // response.data is already parsed JSON (axios auto-parses)
-  return response.data;
+  // 2. Dedup concurrent requests for the same CID
+  if (inFlight.has(cid)) return inFlight.get(cid);
+
+  const fetchPromise = (async () => {
+    // PINATA_JWT is injected from env — never echoed in logs or responses
+    const response = await axios.get(`${PINATA_GATEWAY}/${cid}`, {
+      headers: {
+        Authorization: `Bearer ${process.env.PINATA_JWT}`,
+      },
+    });
+
+    // response.data is already parsed JSON (axios auto-parses)
+    const data = response.data;
+    cacheSet(cid, data);
+    return data;
+  })();
+
+  inFlight.set(cid, fetchPromise);
+  try {
+    return await fetchPromise;
+  } finally {
+    inFlight.delete(cid);
+  }
 }
 
 /**
@@ -142,8 +179,36 @@ async function fetchMetadataFromIPFS(cid) {
   return data.metadata;
 }
 
+/**
+ * Run async tasks with a concurrency limit.
+ * @param {Array} items - Items to process
+ * @param {number} limit - Max concurrent tasks
+ * @param {Function} fn  - Async function(item) => result
+ * @returns {Promise<Array>} Settled results (same as Promise.allSettled)
+ */
+async function mapWithConcurrency(items, limit, fn) {
+  const results = new Array(items.length);
+  let idx = 0;
+
+  async function worker() {
+    while (idx < items.length) {
+      const i = idx++;
+      try {
+        results[i] = { status: "fulfilled", value: await fn(items[i]) };
+      } catch (err) {
+        results[i] = { status: "rejected", reason: err };
+      }
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
+
 module.exports = {
   uploadToIPFS,
   fetchFromIPFS,
   fetchMetadataFromIPFS,
+  mapWithConcurrency,
 };
