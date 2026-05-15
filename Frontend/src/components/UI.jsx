@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
@@ -103,10 +103,34 @@ export function Input({
   );
 }
 
-export function Toast({ message, type = "success", onClose }) {
+export function Toast({ message, type = "success", onClose, duration = 4000 }) {
+  const [isExiting, setIsExiting] = useState(false);
+
+  useEffect(() => {
+    if (!message) return;
+
+    const timer = setTimeout(() => {
+      setIsExiting(true);
+    }, duration);
+
+    return () => clearTimeout(timer);
+  }, [message, duration]);
+
+  const handleClose = () => {
+    setIsExiting(true);
+  };
+
+  const handleAnimationEnd = () => {
+    if (isExiting) {
+      onClose();
+    }
+  };
+
   if (!message) return null;
+
   const colors = {
-    success: "bg-success/15 border-success text-success shadow-lg shadow-success/10",
+    success:
+      "bg-success/15 border-success text-success shadow-lg shadow-success/10",
     error: "bg-danger/15 border-danger text-danger shadow-lg shadow-danger/10",
     info: "bg-accent/15 border-accent text-accent shadow-lg shadow-accent/10",
   };
@@ -119,12 +143,17 @@ export function Toast({ message, type = "success", onClose }) {
 
   const toastContent = (
     <div
-      className={`fixed top-20 left-1/2 -translate-x-1/2 z-9999 w-auto max-w-md px-5 py-3 rounded-xl border-2 text-sm font-medium shadow-2xl backdrop-blur-xl animate-fade-in animate-slide-down flex items-center gap-3 ${colors[type]}`}
+      className={`fixed top-20 left-1/2 -translate-x-1/2 z-9999 w-auto max-w-md px-5 py-3 rounded-xl border-2 text-sm font-medium shadow-2xl backdrop-blur-xl flex items-center gap-3 ${colors[type]} ${
+        isExiting
+          ? "animate-fade-out animate-slide-up"
+          : "animate-fade-in animate-slide-down"
+      }`}
+      onAnimationEnd={handleAnimationEnd}
     >
       <span className="text-base font-bold shrink-0">{icons[type]}</span>
       <span className="flex-1">{message}</span>
       <button
-        onClick={onClose}
+        onClick={handleClose}
         className="ml-2 opacity-60 hover:opacity-100 cursor-pointer text-text-secondary hover:text-text-primary transition-opacity shrink-0"
       >
         ×

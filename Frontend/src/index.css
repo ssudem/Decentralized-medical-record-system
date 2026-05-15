@@ -17,7 +17,7 @@
   --color-danger: #ef4444;
   --color-success: #22c55e;
   --color-warning: #f59e0b;
-  --font-family-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-family-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ─── Global Base Styles ─── */
@@ -31,17 +31,24 @@ body {
 
 /* Fix browser autofill background changing to white */
 input:-webkit-autofill,
-input:-webkit-autofill:hover, 
-input:-webkit-autofill:focus, 
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px var(--color-surface-input) inset !important;
   -webkit-text-fill-color: var(--color-text-primary) !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--color-surface); }
-::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
 
 /* ─── Light Mode Overrides ─── */
 :root.light {
@@ -65,7 +72,9 @@ input:-webkit-autofill:active {
 /* ─── Light-mode card shadow for depth ─── */
 :root.light .card-elevated,
 :root.light [class*="bg-surface-card"] {
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.04);
   border: 2px solid var(--color-border);
 }
 
@@ -77,37 +86,102 @@ input:-webkit-autofill:active {
 }
 
 /* ─── Light-mode scrollbar ─── */
-:root.light ::-webkit-scrollbar-track { background: #f0f4f8; }
-:root.light ::-webkit-scrollbar-thumb { background: #94a3b8; }
+:root.light ::-webkit-scrollbar-track {
+  background: #f0f4f8;
+}
+:root.light ::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+}
 
 /* ─── Utility animations ─── */
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.animate-fade-in { animation: fade-in 0.35s ease-out both; }
+.animate-fade-in {
+  animation: fade-in 0.35s ease-out both;
+}
 
 @keyframes slide-down {
-  from { opacity: 0; transform: translateY(-100%); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.animate-slide-down { animation: slide-down 0.4s ease-out both; }
+.animate-slide-down {
+  animation: slide-down 0.4s ease-out both;
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.animate-fade-out {
+  animation: fade-out 0.35s ease-in both;
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+}
+.animate-slide-up {
+  animation: slide-up 0.4s ease-in both;
+}
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 12px rgba(13, 148, 136, 0.3); }
-  50%      { box-shadow: 0 0 24px rgba(13, 148, 136, 0.55); }
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(13, 148, 136, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(13, 148, 136, 0.55);
+  }
 }
-.animate-pulse-glow { animation: pulse-glow 2.5s ease-in-out infinite; }
+.animate-pulse-glow {
+  animation: pulse-glow 2.5s ease-in-out infinite;
+}
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
-.animate-spin { animation: spin 1s linear infinite; }
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
 
 /* ─── Theme toggle button ─── */
 @keyframes theme-toggle-spin {
-  from { transform: rotate(0deg) scale(0.8); opacity: 0; }
-  to   { transform: rotate(360deg) scale(1); opacity: 1; }
+  from {
+    transform: rotate(0deg) scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(360deg) scale(1);
+    opacity: 1;
+  }
 }
 .theme-toggle-icon {
   animation: theme-toggle-spin 0.4s ease-out;

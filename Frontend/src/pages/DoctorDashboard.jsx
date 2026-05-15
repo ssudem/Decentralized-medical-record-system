@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import SPECIALTIES from "../constants/specialties";
 import { clearAllDoctorCaches, clearGrantedCache, saveViewMode } from "../utils/recordCache";
+import useDoctorAuth from "../utils/useDoctorAuth";
 
 export default function DoctorDashboard() {
   const { user, walletAddress } = useAuth();
@@ -34,27 +35,10 @@ export default function DoctorDashboard() {
   };
 
   // ── Hospital linkage check ──
-  const [hospitalAddr, setHospitalAddr] = useState(null);
-  const [hospitalCheckDone, setHospitalCheckDone] = useState(false);
+  const { isAuthorized: isHospitalLinked, hospitalAddr, loading: hospitalCheckDoneLoading } = useDoctorAuth(walletAddress);
+  const hospitalCheckDone = !hospitalCheckDoneLoading;
 
   useEffect(() => {
-    if (!walletAddress) return;
-    (async () => {
-      try {
-        const { data } = await API.get(`/hospitals/doctor/${walletAddress}`);
-        const addr = data.hospitalAddress;
-        const isLinked =
-          addr && addr !== "0x0000000000000000000000000000000000000000";
-        setHospitalAddr(isLinked ? addr : null);
-      } catch {
-        setHospitalAddr(null);
-      } finally {
-        setHospitalCheckDone(true);
-      }
-    })();
-
-    // Lookup Registered name for wallet
-
     // Clear doctor view-records cache when returning to dashboard
     clearAllDoctorCaches();
     clearGrantedCache(walletAddress);
@@ -94,7 +78,7 @@ export default function DoctorDashboard() {
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
       {/* ── Hospital warning ── */}
-      {hospitalCheckDone && !hospitalAddr && (
+      {hospitalCheckDone && !isHospitalLinked && (
         <div className="p-4 rounded-xl bg-warning/5 border border-warning/30 flex items-start gap-3 animate-fade-in">
           <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
           <div>
@@ -141,7 +125,7 @@ export default function DoctorDashboard() {
               ))}
             </select>
           </div>
-          {hospitalAddr && (
+          {isHospitalLinked && hospitalAddr && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-success/10 text-success text-xs font-medium border-l border-border pl-3 ml-1">
               <Building2 className="w-3 h-3" /> Hospital:{" "}
               <UserAddress address={hospitalAddr} />
@@ -182,7 +166,7 @@ export default function DoctorDashboard() {
 
       {/* ── Overview Stats ── */}
       <section>
-        <Card className="text-center py-10">
+        <Card className="text-center py-10 !border-surface-input">
           <p className="text-text-secondary text-sm">
             Use the quick actions above to create records, search patient
             records, or request access from patients.

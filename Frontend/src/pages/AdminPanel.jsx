@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API from '../api/axios';
-import { removeHospitalOnChain } from '../utils/blockchain';
+import { removeHospitalOnChain, getDoctorHospital, isHospitalValidOnChain } from '../utils/blockchain';
 import { Card, Button, Input, Toast } from '../components/UI';
 import UserAddressInput from '../components/UserAddressInput';
 import UserAddress from '../components/UserAddress';
@@ -61,8 +61,8 @@ export default function AdminPanel() {
     setCheckLoading(true);
     setCheckResult(null);
     try {
-      const { data } = await API.get(`/hospitals/${checkAddr}/status`);
-      setCheckResult({ type: 'hospital', ...data });
+      const isValid = await isHospitalValidOnChain(checkAddr);
+      setCheckResult({ type: 'hospital', address: checkAddr, isValid });
     } catch {
       setToast({ message: 'Lookup failed', type: 'error' });
     } finally {
@@ -75,9 +75,9 @@ export default function AdminPanel() {
     setCheckLoading(true);
     setCheckResult(null);
     try {
-      const { data } = await API.get(`/hospitals/doctor/${checkAddr}`);
-      const isLinked = data.hospitalAddress && data.hospitalAddress !== '0x0000000000000000000000000000000000000000';
-      setCheckResult({ type: 'doctor', ...data, isLinked });
+      const hospitalAddress = await getDoctorHospital(checkAddr);
+      const isLinked = hospitalAddress && hospitalAddress !== '0x0000000000000000000000000000000000000000';
+      setCheckResult({ type: 'doctor', doctorAddress: checkAddr, hospitalAddress, isLinked });
     } catch {
       setToast({ message: 'Lookup failed', type: 'error' });
     } finally {

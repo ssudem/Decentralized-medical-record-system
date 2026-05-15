@@ -299,7 +299,7 @@ export default function PatientDashboard() {
             <Spinner size="lg" />
           </div>
         ) : pendingRequests.length === 0 ? (
-          <Card className="text-center py-8">
+          <Card className="text-center py-8 !border-surface-input">
             <Inbox className="w-10 h-10 text-text-muted mx-auto mb-2" />
             <p className="text-text-secondary text-sm">
               No pending access requests.

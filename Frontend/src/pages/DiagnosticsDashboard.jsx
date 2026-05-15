@@ -12,6 +12,7 @@ import {
   FlaskConical,
 } from "lucide-react";
 import { getDiagnosticsLabHospital } from "../utils/blockchain";
+import useDiagnosticsAuth from "../utils/useDiagnosticsAuth";
 
 export default function DiagnosticsDashboard() {
   const { user, walletAddress } = useAuth();
@@ -20,25 +21,8 @@ export default function DiagnosticsDashboard() {
   const [toast, setToast] = useState(null);
 
   // ── Hospital linkage check ──
-  const [hospitalAddr, setHospitalAddr] = useState(null);
-  const [hospitalCheckDone, setHospitalCheckDone] = useState(false);
-
-  useEffect(() => {
-    if (!walletAddress) return;
-    (async () => {
-      try {
-        const { data } = await API.get(`/hospitals/diagnostics-lab/${walletAddress}`);
-        const addr = data.hospitalAddress;
-        const isLinked =
-          addr && addr !== "0x0000000000000000000000000000000000000000";
-        setHospitalAddr(isLinked ? addr : null);
-      } catch {
-        setHospitalAddr(null);
-      } finally {
-        setHospitalCheckDone(true);
-      }
-    })();
-  }, [walletAddress]);
+  const { isAuthorized: isHospitalLinked, hospitalAddr, loading: hospitalCheckDoneLoading } = useDiagnosticsAuth(walletAddress);
+  const hospitalCheckDone = !hospitalCheckDoneLoading;
 
   /* ── Quick action items ── */
   const quickActions = [
@@ -57,7 +41,7 @@ export default function DiagnosticsDashboard() {
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
       {/* ── Hospital warning ── */}
-      {hospitalCheckDone && !hospitalAddr && (
+      {hospitalCheckDone && !isHospitalLinked && (
         <div className="p-4 rounded-xl bg-warning/5 border border-warning/30 flex items-start gap-3 animate-fade-in">
           <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
           <div>
@@ -83,7 +67,7 @@ export default function DiagnosticsDashboard() {
             <FlaskConical className="w-4 h-4 text-accent" />
             Welcome, {user?.name || (walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : 'Lab')}
           </p>
-          {hospitalAddr && (
+          {isHospitalLinked && hospitalAddr && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-success/10 text-success text-xs font-medium border-l border-border pl-3 ml-1">
               <Building2 className="w-3 h-3" /> Hospital:{" "}
               <UserAddress address={hospitalAddr} />
@@ -124,7 +108,7 @@ export default function DiagnosticsDashboard() {
 
       {/* ── Overview ── */}
       <section>
-        <Card className="text-center py-10">
+        <Card className="text-center py-10 !border-surface-input">
           <p className="text-text-secondary text-sm">
             Use the quick action above to upload encrypted diagnostics reports
             for patients. Reports are encrypted with the patient&apos;s public key

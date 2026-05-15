@@ -8,7 +8,6 @@ import {
   getDoctorHospital,
   getDiagnosticsLabHospital,
 } from "../utils/blockchain";
-import API from "../api/axios";
 import { Card, Button, Input, Toast } from "../components/UI";
 import UserAddressInput from "../components/UserAddressInput";
 import UserAddress from "../components/UserAddress";
@@ -238,11 +237,11 @@ export default function HospitalPanel() {
     setCheckLoading(true);
     setCheckResult(null);
     try {
-      const { data } = await API.get(`/hospitals/doctor/${checkAddr}`);
+      const hospitalAddress = await getDoctorHospital(checkAddr);
       const isLinked =
-        data.hospitalAddress &&
-        data.hospitalAddress !== "0x0000000000000000000000000000000000000000";
-      setCheckResult({ ...data, isLinked });
+        hospitalAddress &&
+        hospitalAddress !== "0x0000000000000000000000000000000000000000";
+      setCheckResult({ doctorAddress: checkAddr, hospitalAddress, isLinked });
     } catch {
       setToast({ message: "Lookup failed", type: "error" });
     } finally {
@@ -256,13 +255,11 @@ export default function HospitalPanel() {
     setCheckLabLoading(true);
     setCheckLabResult(null);
     try {
-      const { data } = await API.get(
-        `/hospitals/diagnostics-lab/${checkLabAddr}`,
-      );
+      const hospitalAddress = await getDiagnosticsLabHospital(checkLabAddr);
       const isLinked =
-        data.hospitalAddress &&
-        data.hospitalAddress !== "0x0000000000000000000000000000000000000000";
-      setCheckLabResult({ ...data, isLinked });
+        hospitalAddress &&
+        hospitalAddress !== "0x0000000000000000000000000000000000000000";
+      setCheckLabResult({ labAddress: checkLabAddr, hospitalAddress, isLinked });
     } catch {
       setToast({ message: "Lab lookup failed", type: "error" });
     } finally {

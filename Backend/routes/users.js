@@ -79,7 +79,7 @@ router.get("/:address", async (req, res) => {
     const user = await getUserByAddress(address);
 
     if (!user) {
-      return res.status(404).json({ error: "User not found in directory" });
+      return res.status(200).json({ success: true, user: null });
     }
 
     res.json({ success: true, user });

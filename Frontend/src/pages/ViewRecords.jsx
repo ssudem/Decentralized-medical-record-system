@@ -5,7 +5,7 @@ import API from "../api/axios";
 import { Card, Button, Input, Spinner, Toast } from "../components/UI";
 import UserAddressInput from "../components/UserAddressInput";
 import UserAddress from "../components/UserAddress";
-import { Search, ClipboardList, FileText, ArrowLeft, Users, ListChecks, ChevronDown, ChevronRight, Layers } from "lucide-react";
+import { Search, ClipboardList, FileText, ArrowLeft, Users, ListChecks, ChevronDown, ChevronRight, Layers, X } from "lucide-react";
 import OPERATIONS from "../constants/operations";
 import {
   decryptAESKeyWithNaCl,
@@ -26,6 +26,7 @@ import {
   savePermissionCache,
   loadPermissionCache,
 } from "../utils/recordCache";
+import useDoctorAuth from "../utils/useDoctorAuth";
 
 /* ── Operation icon map ── */
 const OP_ICONS = {
@@ -120,6 +121,7 @@ function RecordCard({ rec, navigate }) {
 export default function ViewRecords() {
   const { walletAddress, naclPrivateKey } = useAuth();
   const navigate = useNavigate();
+  const { isAuthorized, loading: authLoading } = useDoctorAuth(walletAddress);
 
   const [toast, setToast] = useState(null);
   // Mode: "manual" | "granted" — restored from sessionStorage
@@ -438,6 +440,25 @@ export default function ViewRecords() {
 
   // ── Operation label helper ──
   const opLabel = (val) => OPERATIONS.find(o => o.value === val)?.label || val;
+
+  if (authLoading) return null;
+
+  if (!isAuthorized) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+        <div className="w-16 h-16 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <X className="w-8 h-8 text-warning" />
+        </div>
+        <h2 className="text-2xl font-bold text-text-primary mb-2">Unauthorized</h2>
+        <p className="text-text-secondary mb-6">
+          You are not currently linked to a valid hospital. You must be authorized by a valid hospital to view records.
+        </p>
+        <Button onClick={() => navigate("/doctor")}>
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6 animate-fade-in">

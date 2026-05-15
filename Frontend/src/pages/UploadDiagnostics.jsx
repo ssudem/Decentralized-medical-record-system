@@ -5,14 +5,16 @@ import API from "../api/axios";
 import { addRecordLabOnChain } from "../utils/blockchain";
 import { Card, Button, Input, Toast } from "../components/UI";
 import UserAddressInput from "../components/UserAddressInput";
-import { Upload, ArrowLeft, FileText, FlaskConical, FileUp } from "lucide-react";
+import { Upload, ArrowLeft, FileText, FlaskConical, FileUp, X } from "lucide-react";
 import { encryptAESKeyWithNaCl } from "../utils/naclCrypto";
 import nacl from "tweetnacl";
 import naclUtil from "tweetnacl-util";
+import useDiagnosticsAuth from "../utils/useDiagnosticsAuth";
 
 export default function UploadDiagnostics() {
   const { walletAddress, naclPrivateKey } = useAuth();
   const navigate = useNavigate();
+  const { isAuthorized, loading: authLoading } = useDiagnosticsAuth(walletAddress);
 
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -147,6 +149,25 @@ export default function UploadDiagnostics() {
     }
   };
 
+  if (authLoading) return null;
+
+  if (!isAuthorized) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+        <div className="w-16 h-16 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <X className="w-8 h-8 text-warning" />
+        </div>
+        <h2 className="text-2xl font-bold text-text-primary mb-2">Unauthorized</h2>
+        <p className="text-text-secondary mb-6">
+          You are not currently linked to a valid hospital. You must be authorized by a valid hospital to upload diagnostics reports.
+        </p>
+        <Button onClick={() => navigate("/diagnostics")}>
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6 animate-fade-in">
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
@@ -170,19 +191,30 @@ export default function UploadDiagnostics() {
         </div>
       </div>
 
-      {/* Mode Toggle */}
-      <div className="flex rounded-xl border border-border overflow-hidden w-fit">
-        <button type="button"
-          onClick={() => setUploadMode('upload')}
-          className={`px-5 py-2.5 text-sm font-semibold flex items-center gap-2 transition-colors cursor-pointer
-            ${uploadMode === 'upload' ? 'bg-primary text-white' : 'bg-surface-card text-text-secondary hover:text-text-primary'}`}>
-          <FileUp className="w-4 h-4" /> Upload PDF
-        </button>
-        <button type="button"
-          onClick={() => { setUploadMode('form'); setPdfFile(null); }}
-          className={`px-5 py-2.5 text-sm font-semibold flex items-center gap-2 transition-colors cursor-pointer
-            ${uploadMode === 'form' ? 'bg-primary text-white' : 'bg-surface-card text-text-secondary hover:text-text-primary'}`}>
+      {/* ─── Mode Toggle ─── */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setUploadMode("form");
+            setPdfFile(null);
+          }}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer
+            ${uploadMode === "form"
+              ? "bg-primary text-white shadow-md shadow-primary/20"
+              : "bg-surface-light text-text-secondary border border-border hover:border-primary/40"}`}
+        >
           <FileText className="w-4 h-4" /> Fill Form
+        </button>
+        <button
+          type="button"
+          onClick={() => setUploadMode("upload")}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer
+            ${uploadMode === "upload"
+              ? "bg-accent text-white shadow-md shadow-accent/20"
+              : "bg-surface-light text-text-secondary border border-border hover:border-accent/40"}`}
+        >
+          <FileUp className="w-4 h-4" /> Upload PDF
         </button>
       </div>
 
