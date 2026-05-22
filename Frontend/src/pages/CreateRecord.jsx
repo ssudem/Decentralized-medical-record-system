@@ -75,13 +75,18 @@ export default function CreateRecord() {
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!patientAddress) {
-      setToast({ message: "Patient address is required", type: "error" });
+      setToast({
+        message: "Patient address is required",
+        type: "error",
+        duration: 100000,
+      });
       return;
     }
     if (uploadMode === "pdf" && !pdfFile) {
       setToast({
         message: "Please select a PDF file to upload",
         type: "error",
+        duration: 100000,
       });
       return;
     }
@@ -89,6 +94,7 @@ export default function CreateRecord() {
       setToast({
         message: "At least one operation is required",
         type: "error",
+        duration: 100000,
       });
       return;
     }
@@ -99,7 +105,11 @@ export default function CreateRecord() {
       const resolvedPatient = patientAddress;
 
       // 1. Fetch patient's NaCl public key
-      setToast({ message: "Fetching patient encryption key…", type: "info" });
+      setToast({
+        message: "Fetching patient encryption key…",
+        type: "info",
+        duration: 100000,
+      });
       const { data: pkData } = await API.get(
         `/auth/public-key/${resolvedPatient}`,
       );
@@ -153,7 +163,11 @@ export default function CreateRecord() {
       };
 
       // 5. Upload to backend
-      setToast({ message: "Encrypting and uploading record…", type: "info" });
+      setToast({
+        message: "Encrypting and uploading record…",
+        type: "info",
+        duration: 100000,
+      });
 
       let data;
       if (pdfFile) {
@@ -184,6 +198,7 @@ export default function CreateRecord() {
       setToast({
         message: "Securing encryption key for patient…",
         type: "info",
+        duration: 100000,
       });
       if (!naclPrivateKey)
         throw new Error("Doctor encryption keys not available. Re-login.");
@@ -215,42 +230,47 @@ export default function CreateRecord() {
       setToast({
         message: "Confirm the blockchain transaction in MetaMask…",
         type: "info",
+        duration: 100000,
       });
       await addRecordOnChain(resolvedPatient, data.cid);
 
       setToast({
         message: `Record created! CID: ${data.cid.slice(0, 12)}…`,
         type: "success",
+        duration: 100000,
       });
 
-      // Reset
-      setPatientAddress("");
-      setPatientName("");
-      setPatientAge("");
-      setPatientGender("");
-      setBloodGroup("");
-      setAllergies("");
-      setChiefComplaint("");
-      setSymptoms("");
-      setDiagnosis("");
-      setTreatment("");
-      setPrescription("");
-      setLabResults("");
-      setFollowUp("");
-      setNotes("");
-      setBp("");
-      setPulse("");
-      setTemperature("");
-      setWeight("");
-      setSelectedOps([]);
-      setSpecialty("");
-      setCustomTags("");
-      setPdfFile(null);
+      // Reset form after brief delay to ensure toast displays
+      setTimeout(() => {
+        setPatientAddress("");
+        setPatientName("");
+        setPatientAge("");
+        setPatientGender("");
+        setBloodGroup("");
+        setAllergies("");
+        setChiefComplaint("");
+        setSymptoms("");
+        setDiagnosis("");
+        setTreatment("");
+        setPrescription("");
+        setLabResults("");
+        setFollowUp("");
+        setNotes("");
+        setBp("");
+        setPulse("");
+        setTemperature("");
+        setWeight("");
+        setSelectedOps([]);
+        setSpecialty("");
+        setCustomTags("");
+        setPdfFile(null);
+      }, 100);
     } catch (err) {
       setToast({
         message:
           err?.response?.data?.error || err?.reason || err?.message || "Failed",
         type: "error",
+        duration: 100000,
       });
     } finally {
       setLoading(false);
@@ -265,9 +285,12 @@ export default function CreateRecord() {
         <div className="w-16 h-16 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-4">
           <X className="w-8 h-8 text-warning" />
         </div>
-        <h2 className="text-2xl font-bold text-text-primary mb-2">Unauthorized</h2>
+        <h2 className="text-2xl font-bold text-text-primary mb-2">
+          Unauthorized
+        </h2>
         <p className="text-text-secondary mb-6">
-          You are not currently linked to a valid hospital. You must be authorized by a valid hospital to create records.
+          You are not currently linked to a valid hospital. You must be
+          authorized by a valid hospital to create records.
         </p>
         <Button onClick={() => navigate("/doctor")}>
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
@@ -305,9 +328,11 @@ export default function CreateRecord() {
             setPdfFile(null);
           }}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer
-            ${uploadMode === "form"
-              ? "bg-primary text-white shadow-md shadow-primary/20"
-              : "bg-surface-light text-text-secondary border border-border hover:border-primary/40"}`}
+            ${
+              uploadMode === "form"
+                ? "bg-primary text-white shadow-md shadow-primary/20"
+                : "bg-surface-light text-text-secondary border border-border hover:border-primary/40"
+            }`}
         >
           <FileText className="w-4 h-4" /> Fill Form
         </button>
@@ -315,9 +340,11 @@ export default function CreateRecord() {
           type="button"
           onClick={() => setUploadMode("pdf")}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer
-            ${uploadMode === "pdf"
-              ? "bg-accent text-white shadow-md shadow-accent/20"
-              : "bg-surface-light text-text-secondary border border-border hover:border-accent/40"}`}
+            ${
+              uploadMode === "pdf"
+                ? "bg-accent text-white shadow-md shadow-accent/20"
+                : "bg-surface-light text-text-secondary border border-border hover:border-accent/40"
+            }`}
         >
           <FileUp className="w-4 h-4" /> Upload PDF Report
         </button>
@@ -674,4 +701,3 @@ export default function CreateRecord() {
     </div>
   );
 }
-

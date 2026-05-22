@@ -56,6 +56,7 @@ export default function GrantAccess() {
       setToast({
         message: err.response?.data?.error || "Failed to fetch records",
         type: "error",
+        duration: 100000,
       });
     } finally {
       setRecLoading(false);
@@ -78,6 +79,7 @@ export default function GrantAccess() {
       setToast({
         message: "Select doctor, operation, and at least one record",
         type: "error",
+        duration: 100000,
       });
       return;
     }
@@ -85,6 +87,7 @@ export default function GrantAccess() {
       setToast({
         message: "Encryption keys not available. Re-login.",
         type: "error",
+        duration: 100000,
       });
       return;
     }
@@ -105,11 +108,16 @@ export default function GrantAccess() {
         setToast({
           message: "Access already granted to this doctor for this operation",
           type: "error",
+          duration: 100000,
         });
         return;
       }
       // 1. Fetch doctor's NaCl public key
-      setToast({ message: "Fetching doctor encryption key…", type: "info" });
+      setToast({
+        message: "Fetching doctor encryption key…",
+        type: "info",
+        duration: 100000,
+      });
       const { data: pkData } = await API.get(
         `/auth/public-key/${resolvedDoctor}`,
       );
@@ -123,6 +131,7 @@ export default function GrantAccess() {
       setToast({
         message: "Confirm blockchain transaction in MetaMask…",
         type: "info",
+        duration: 100000,
       });
       const durationSeconds = parseInt(hours) * 3600;
       await grantAccessOnChain(
@@ -133,7 +142,11 @@ export default function GrantAccess() {
       );
 
       // 3. For each selected CID: decrypt AES key, then re-encrypt for doctor
-      setToast({ message: "Re-encrypting keys for doctor…", type: "info" });
+      setToast({
+        message: "Re-encrypting keys for doctor…",
+        type: "info",
+        duration: 100000,
+      });
 
       for (const cid of selectedCIDs) {
         const rec = records.find((r) => r.cid === cid);
@@ -189,16 +202,22 @@ export default function GrantAccess() {
       setToast({
         message: `Access granted to ${resolvedDoctor.slice(0, 6)}…${resolvedDoctor.slice(-4)} for ${hours}h`,
         type: "success",
+        duration: 100000,
       });
-      setDoctorAddress("");
-      setSelectedCIDs([]);
+      // Reset form after a brief delay to ensure toast displays
+      setTimeout(() => {
+        setDoctorAddress("");
+        setOperation("");
+        setSelectedCIDs([]);
+        setHours("1");
+      }, 100);
     } catch (err) {
       const msg =
         err?.response?.data?.error ||
         err?.reason ||
         err?.message ||
         "Grant failed";
-      setToast({ message: msg, type: "error" });
+      setToast({ message: msg, type: "error", duration: 100000 });
     } finally {
       setLoading(false);
     }
@@ -337,4 +356,3 @@ export default function GrantAccess() {
     </div>
   );
 }
-

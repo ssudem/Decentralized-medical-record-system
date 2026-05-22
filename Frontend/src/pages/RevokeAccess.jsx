@@ -41,11 +41,16 @@ export default function RevokeAccess() {
         setToast({
           message: "Doctor already does not have access to this operation",
           type: "error",
+          duration: 100000,
         });
         return;
       }
       // 2. Revoke on-chain (MetaMask popup)
-      setToast({ message: "Confirm revoke in MetaMask…", type: "info" });
+      setToast({
+        message: "Confirm revoke in MetaMask…",
+        type: "info",
+        duration: 100000,
+      });
 
       await revokeAccessOnChain(resolvedDoctor, revokeForm.operation);
 
@@ -53,6 +58,7 @@ export default function RevokeAccess() {
       setToast({
         message: "Removing off-chain encrypted keys from SQL-DB...",
         type: "info",
+        duration: 100000,
       });
       const { data } = await API.post("/records/view", {
         patientAddress: walletAddress,
@@ -70,10 +76,21 @@ export default function RevokeAccess() {
         }
       }
 
-      setToast({ message: "Access revoked successfully!", type: "success" });
-      setRevokeForm({ doctorAddress: "", operation: "" });
+      setToast({
+        message: "Access revoked successfully!",
+        type: "success",
+        duration: 100000,
+      });
+      // Reset form after brief delay to ensure toast displays
+      setTimeout(() => {
+        setRevokeForm({ doctorAddress: "", operation: "" });
+      }, 100);
     } catch (err) {
-      setToast({ message: err.message || "Revoke failed", type: "error" });
+      setToast({
+        message: err.message || "Revoke failed",
+        type: "error",
+        duration: 100000,
+      });
     } finally {
       setRevokeLoading(false);
     }
@@ -153,4 +170,3 @@ export default function RevokeAccess() {
     </div>
   );
 }
-

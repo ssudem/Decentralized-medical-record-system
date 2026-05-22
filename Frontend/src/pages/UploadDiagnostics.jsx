@@ -41,7 +41,7 @@ export default function UploadDiagnostics() {
     if (file && file.type === "application/pdf") {
       setPdfFile(file);
     } else {
-      setToast({ message: "Only PDF files are allowed", type: "error" });
+      setToast({ message: "Only PDF files are allowed", type: "error" , duration: 100000});
       e.target.value = "";
     }
   };
@@ -54,18 +54,18 @@ export default function UploadDiagnostics() {
       return;
     }
     if (uploadMode === "upload" && !pdfFile) {
-      setToast({ message: "Please select a PDF file to upload", type: "error" });
+      setToast({ message: "Please select a PDF file to upload", type: "error" , duration: 100000});
       return;
     }
     if (uploadMode === "form" && (!testName || !result)) {
-      setToast({ message: "Test Name and Result are required in form mode", type: "error" });
+      setToast({ message: "Test Name and Result are required in form mode", type: "error" , duration: 100000});
       return;
     }
 
     setLoading(true);
     try {
       // 0. Resolve Registered name if needed
-      setToast({ message: "Resolving address…", type: "info" });
+      setToast({ message: "Resolving address…", type: "info" , duration: 100000});
       const resolvedPatient = patientAddress;
 
       // Build lab report JSON
@@ -89,7 +89,7 @@ export default function UploadDiagnostics() {
       formData.append("tags", JSON.stringify(tags.split(",").map((t) => t.trim()).filter(Boolean)));
 
       // 1. Upload to backend (encrypts + stores on IPFS)
-      setToast({ message: "Encrypting and uploading to IPFS…", type: "info" });
+      setToast({ message: "Encrypting and uploading to IPFS…", type: "info" , duration: 100000});
       const { data } = await API.post("/diagnostics/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -99,7 +99,7 @@ export default function UploadDiagnostics() {
       }
 
       // 1b. Encrypt AES key for the patient using lab's NaCl key
-      setToast({ message: "Securing encryption key for patient…", type: "info" });
+      setToast({ message: "Securing encryption key for patient…", type: "info" , duration: 100000});
       if (!naclPrivateKey) throw new Error("Lab encryption keys not available. Re-login.");
 
       const aesKeyBytes = Uint8Array.from(atob(data.aesKeyBase64), c => c.charCodeAt(0));
@@ -124,12 +124,13 @@ export default function UploadDiagnostics() {
       });
 
       // 2. Register CID on blockchain via MetaMask
-      setToast({ message: "Confirm the blockchain transaction in MetaMask…", type: "info" });
+      setToast({ message: "Confirm the blockchain transaction in MetaMask…", type: "info" , duration: 100000});
       await addRecordLabOnChain(resolvedPatient, data.cid);
 
       setToast({
         message: `Report uploaded successfully! CID: ${data.cid.slice(0, 12)}…`,
         type: "success",
+        duration: 100000,
       });
 
       // Reset form
